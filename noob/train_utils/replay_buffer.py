@@ -14,6 +14,9 @@ class ReplayBuffer():
     def __init__(self) -> None:
         self.buffer = deque(maxlen=TRAIN_CONFIG.replay_size)
 
+    def size(self):
+        return len(self.buffer)
+
     def save(self, version="w"):
         dataset_dir = TRAIN_CONFIG.dataset_dir
 

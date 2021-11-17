@@ -45,13 +45,13 @@ def selfPlay(net):
                 ic("Game Over. Draw")
                 return [], [], []
             message = "Game Over. Player{} win!".format(winner)
-            ic(message)
+            # ic(message)
 
             states, mcts_probs = zip(*data_buffer)
             values = [
                 1 if (i & 1) == winner else -1
                 for i in range(episode_len)]
-            ic(len(states), len(values))
+            # ic(len(states), len(values))
 
             return states, mcts_probs, values
 
@@ -86,5 +86,5 @@ def contest(net0, net1):
             message = "Game Over. {}".format(
                 "Draw" if winner == -1
                 else "Player{} win!".format(winner))
-            ic(message)
+            # ic(message)
             return winner

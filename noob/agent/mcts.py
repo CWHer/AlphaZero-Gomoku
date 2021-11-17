@@ -85,7 +85,8 @@ class MCTS():
 
     def search(self, env):
         # NOTE: make sure root node is correct
-        for _ in tqdm(range(MCTS_CONFIG.search_num)):
+        # for _ in tqdm(range(MCTS_CONFIG.search_num)):
+        for _ in range(MCTS_CONFIG.search_num):
             self.__search(copy.deepcopy(env))
 
         # debug

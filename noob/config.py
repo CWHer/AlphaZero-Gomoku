@@ -7,11 +7,10 @@ MDP_CONFIG = {
     "win_length": 5,
 }
 
-
 NETWORK_CONFIG = {
-    "periods_num": 5,
-    "num_channels": 256,
-    "num_res": 4,
+    "periods_num": 3,
+    "num_channels": 128,
+    "num_res": 2,
 }
 
 MCTS_CONFIG = {
@@ -35,12 +34,13 @@ TRAIN_CONFIG = {
     "data_save_freq": 50,
 
     "train_num": 10000,
+    "process_num": 10,
+    # evaluate model
     "check_freq": 20,
     "update_threshold": 0.55,
     "num_contest": 20,
-
-    "game_num": 30,
-    "processes_num": 30,
+    # data generation
+    "game_num": 20,
 }
 
 MDP_CONFIG_TYPE = namedtuple("MDP_CONFIG", MDP_CONFIG.keys())

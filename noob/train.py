@@ -1,11 +1,14 @@
 import copy
+from multiprocessing import Pool
 
+import numpy as np
+import torch
 from icecream import ic
 from tqdm import tqdm
 
 from agent.network import PolicyValueNet
 from config import TRAIN_CONFIG
-from train_utils.game import selfPlay, contest
+from train_utils.game import contest, selfPlay
 from train_utils.replay_buffer import ReplayBuffer
 from utils import timeLog
 
@@ -20,23 +23,44 @@ class Trainer():
     @timeLog
     def collectData(self):
         ic("collect data")
-        for i in tqdm(range(TRAIN_CONFIG.game_num)):
-            states, mcts_probs, values = selfPlay(self.net)
-            self.replay_buffer.add(states, mcts_probs, values)
+        self.net.setDevice(torch.device("cpu"))
 
-    @timeLog
+        games = [
+            (self.net, np.random.randint(2 ** 30))
+            for _ in range(TRAIN_CONFIG.game_num)]
+        with tqdm(total=TRAIN_CONFIG.game_num) as pbar:
+            with Pool(TRAIN_CONFIG.process_num) as pool:
+                results = pool.starmap(selfPlay, games)
+                for result in results:
+                    self.replay_buffer.add(*result)
+                    pbar.update()
+
+    @ timeLog
     def evaluate(self):
         ic("evaluate model")
+        self.net.setDevice(torch.device("cpu"))
+        self.best_net.setDevice(torch.device("cpu"))
+
         results = {0: 0, 1: 0, -1: 0}
+        with tqdm(total=TRAIN_CONFIG.num_contest) as pbar:
+            games = [
+                (self.net, self.best_net, np.random.randint(2 ** 30))
+                for _ in range(TRAIN_CONFIG.num_contest // 2)]
+            with Pool(TRAIN_CONFIG.process_num) as pool:
+                winners = pool.starmap(contest, games)
+                for winner in winners:
+                    results[winner] += 1
+                    pbar.update()
 
-        for i in tqdm(range(TRAIN_CONFIG.num_contest // 2)):
-            winner = contest(self.net, self.best_net)
-            results[winner] += 1
-
-        for i in tqdm(range(TRAIN_CONFIG.num_contest // 2)):
-            winner = contest(self.best_net, self.net)
-            winner = winner ^ 1 if winner != -1 else winner
-            results[winner] += 1
+            games = [
+                (self.best_net, self.net, np.random.randint(2 ** 30))
+                for _ in range(TRAIN_CONFIG.num_contest // 2)]
+            with Pool(TRAIN_CONFIG.process_num) as pool:
+                winners = pool.starmap(contest, games)
+                for winner in winners:
+                    winner = winner ^ 1 if winner != -1 else winner
+                    results[winner] += 1
+                    pbar.update()
 
         message = "result: {} win, {} lose, {} draw".format(
             results[0], results[1], results[-1])
@@ -45,8 +69,9 @@ class Trainer():
 
     def train(self):
         ic("train model")
-        train_iter = self.replay_buffer.trainIter()
+        self.net.setDevice(torch.device("cuda:0"))
 
+        train_iter = self.replay_buffer.trainIter()
         for i in range(1, TRAIN_CONFIG.train_epochs + 1):
             losses, mean_loss, mean_acc = [], 0, 0
             with tqdm(total=len(train_iter)) as pbar:

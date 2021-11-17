@@ -36,7 +36,7 @@ class Network(nn.Module):
             nn.Conv2d(hidden_channels, 4, kernel_size=1),
             nn.BatchNorm2d(4),
             nn.ReLU(), nn.Flatten(),
-            nn.Linear(2 * board_size ** 2, board_size ** 2),
+            nn.Linear(4 * board_size ** 2, board_size ** 2),
             nn.LogSoftmax(dim=1)
             # NOTE: use log-softmax to avoid overflow
         )
@@ -74,11 +74,13 @@ class PolicyValueNet():
         if not os.path.exists(checkpoint_dir):
             os.mkdir(checkpoint_dir)
 
+        print("save network version({})".format(version))
         torch.save(
             self.net.state_dict(),
             checkpoint_dir + f"/model_{version}")
 
     def load(self, model_dir):
+        print("load network {}".format(model_dir))
         self.net.load_state_dict(torch.load(
             model_dir, map_location=torch.device("cuda:0")))
 
@@ -104,18 +106,16 @@ class PolicyValueNet():
             loss (float): [description]
             accuracy (float): [description]
         """
-        # TODO: debug
         self.net.train()
         states, mcts_probs, values = data_batch
 
         # loss function: (z - v) ^ 2 - pi ^ T log(p) + c | theta | ^ 2
         policy_log, v = self.net(states.float().cuda())
 
-        # TODO: calculate accuracy
         # calculate accuracy
-        # expert_actions = mcts_prob.argmax(dim=1)
-        # actions = policy.argmax(dim=1)
-        # accuracy = (actions == expert_actions).float().mean().item()
+        expert_actions = mcts_probs.argmax(dim=1)
+        actions = policy_log.argmax(dim=1).cpu().detach()
+        accuracy = (actions == expert_actions).float().mean().item()
 
         value_loss = F.mse_loss(v.view(-1), values.float().cuda())
         policy_loss = -torch.sum(
@@ -132,4 +132,4 @@ class PolicyValueNet():
         loss.backward()
         self.optimizer.step()
 
-        return loss.item()
+        return loss.item(), accuracy

@@ -89,7 +89,7 @@ class MCTS():
             self.__search(copy.deepcopy(env))
 
         # debug
-        self.root.printDebugInfo()
+        # self.root.printDebugInfo()
 
         actions, vis_cnt = list(zip(
             *[(child.action, child.getVisCount())
@@ -114,7 +114,7 @@ class MCTSPlayer():
     def updateRoot(self, action):
         self.mcts.update(action)
 
-    @timeLog
+    # @timeLog
     def getAction(self, env, is_train=False):
         """[summary]
         use MCTS to get action
@@ -122,6 +122,7 @@ class MCTSPlayer():
         Returns:
             (action, mcts_prob)
         """
+        # NOTE: search MUST NOT change env
         actions, probs = self.mcts.search(env)
 
         if is_train:
@@ -149,4 +150,4 @@ class MCTSPlayer():
         #     (MDP_CONFIG.board_size, ) * 2),
         #     "none")
 
-        return action, mcts_prob
+        return action, (ObsEncoder.encode(env), mcts_prob)

@@ -61,11 +61,16 @@ class Network(nn.Module):
 
 class PolicyValueNet():
     def __init__(self) -> None:
-        self.net = Network().cuda()
+        self.device = torch.device("cuda:0")
+        self.net = Network().to(self.device)
         self.optimizer = optim.Adam(
             self.net.parameters(),
             lr=TRAIN_CONFIG.learning_rate,
             weight_decay=TRAIN_CONFIG.l2_weight)
+
+    def setDevice(self, device):
+        self.device = device
+        self.net.to(device)
 
     def save(self, version="w"):
         checkpoint_dir = TRAIN_CONFIG.checkpoint_dir
@@ -91,7 +96,7 @@ class PolicyValueNet():
         """
         self.net.eval()
         features = torch.from_numpy(
-            np.expand_dims(features, 0)).float().cuda()
+            np.expand_dims(features, 0)).float().to(self.device)
         with torch.no_grad():
             policy_log, value = self.net(features)
         policy_log = policy_log.squeeze(dim=0).cpu().detach()
@@ -110,16 +115,16 @@ class PolicyValueNet():
         states, mcts_probs, values = data_batch
 
         # loss function: (z - v) ^ 2 - pi ^ T log(p) + c | theta | ^ 2
-        policy_log, v = self.net(states.float().cuda())
+        policy_log, v = self.net(states.float().to(self.device))
 
         # calculate accuracy
         expert_actions = mcts_probs.argmax(dim=1)
         actions = policy_log.argmax(dim=1).cpu().detach()
         accuracy = (actions == expert_actions).float().mean().item()
 
-        value_loss = F.mse_loss(v.view(-1), values.float().cuda())
+        value_loss = F.mse_loss(v.view(-1), values.float().to(self.device))
         policy_loss = -torch.sum(
-            policy_log * mcts_probs.float().cuda(), dim=1).mean()
+            policy_log * mcts_probs.float().to(self.device), dim=1).mean()
         loss = value_loss * TRAIN_CONFIG.c_loss + policy_loss
 
         # TODO: debug: torchviz

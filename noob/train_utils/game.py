@@ -1,9 +1,11 @@
-from env.simulator import Simulator
+import numpy as np
+import torch
 from agent.mcts import MCTSPlayer
+from env.simulator import Simulator
 from icecream import ic
 
 
-def selfPlay(net):
+def selfPlay(net, seed):
     """[summary]
     self play and gather experiences
     Args:
@@ -13,7 +15,10 @@ def selfPlay(net):
         mcts_probs [List[np.ndarray]]: [description]
         values [List[float]]: [description]
     """
-    # TODO: initialize seeds (torch, np, random)
+    # initialize seeds (torch, np, random)
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
     env = Simulator()
 
     data_buffer, episode_len = [], 0
@@ -56,14 +61,17 @@ def selfPlay(net):
             return states, mcts_probs, values
 
 
-def contest(net0, net1):
+def contest(net0, net1, seed):
     """[summary]
     contest between net0 and net1
 
     Returns:
         int: [description]. winner
     """
-    # TODO: initialize seeds (torch, np, random)
+    # initialize seeds (torch, np, random)
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
     env = Simulator()
     players = [MCTSPlayer(net0), MCTSPlayer(net1)]
 

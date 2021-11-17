@@ -57,5 +57,34 @@ def selfPlay(net):
 
 
 def contest(net0, net1):
-    pass
-    # TODO
+    """[summary]
+    contest between net0 and net1
+
+    Returns:
+        int: [description]. winner
+    """
+    # TODO: initialize seeds (torch, np, random)
+    env = Simulator()
+    players = [MCTSPlayer(net0), MCTSPlayer(net1)]
+
+    while True:
+        # NOTE: getAction MUST NOT change env
+        action, _ = players[env.turn].getAction(env)
+
+        # take action
+        env.step(action)
+        # update root
+        for i in range(2):
+            players[i].updateRoot(action)
+
+        # debug
+        # env.print()
+
+        # check game status
+        done, winner = env.isDone()
+        if done:
+            message = "Game Over. {}".format(
+                "Draw" if winner == -1
+                else "Player{} win!".format(winner))
+            ic(message)
+            return winner

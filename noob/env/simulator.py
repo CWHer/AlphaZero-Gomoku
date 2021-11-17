@@ -22,7 +22,7 @@ class Simulator():
 
     def initBoard(self):
         self.board = -np.ones(
-            (Simulator.board_size, ) * 2, dtype=int)
+            (self.board_size, ) * 2, dtype=int)
         self.winner = -1    # who is winner
         self.turn = 0       # who is to play
         self.actions = []   # record actions taken
@@ -52,9 +52,9 @@ class Simulator():
         count # chesses with same color along certain direction
         """
         ret = 0
-        while (Simulator.isValidPos(coord)
+        while (self.isValidPos(coord)
                and self.board[coord] == col):
-            coord = Simulator.chgCoord(coord, direction)
+            coord = self.chgCoord(coord, direction)
             ret += 1
         return ret
 
@@ -63,7 +63,7 @@ class Simulator():
         format: _ 0 _ 0 _ 1 _ _ _ ...
         """
         with open(file_name, "r") as f:
-            for i in range(Simulator.board_size):
+            for i in range(self.board_size):
                 line = f.readline().replace("_", "-1").split(" ")
                 self.board[i, :] = np.array(list(map(int, line)))
         # self.print()
@@ -73,11 +73,11 @@ class Simulator():
         format: _ 0 _ 0 _ 1 _ _ _ ...
         """
         for coord in product(
-                range(Simulator.board_size), repeat=2):
+                range(self.board_size), repeat=2):
             col = self.board[coord]
             print("{} ".format(
                 "_" if col == -1 else col),
-                end=" " if coord[-1] != Simulator.board_size - 1 else "\n")
+                end=" " if coord[-1] != self.board_size - 1 else "\n")
         print("")
 
     def getEmptyIndex(self):
@@ -86,7 +86,7 @@ class Simulator():
         e.g. [0, 10, 12, 16, 20, ...]
         """
         x, y = np.where(self.board == -1)
-        return [Simulator.Coord2Idx(coord) for coord in zip(x, y)]
+        return [self.Coord2Idx(coord) for coord in zip(x, y)]
 
     def step(self, index):
         """[summary]
@@ -94,7 +94,7 @@ class Simulator():
 
         NOTE: this would change Simulator internal variables
         """
-        coord = Simulator.Idx2Coord(index)
+        coord = self.Idx2Coord(index)
         printError(
             self.board[coord] != -1,
             f"try to repeat a existent step {coord} !")
@@ -126,7 +126,7 @@ class Simulator():
         self.turn = self.turn ^ 1
         self.actions.pop(-1)
 
-        self.board[Simulator.Idx2Coord(index)] = -1
+        self.board[self.Idx2Coord(index)] = -1
         self.winner = -1
 
     def isDone(self):
@@ -138,6 +138,6 @@ class Simulator():
         """
         if self.winner != -1:
             return True, self.winner
-        if not self.getEmptyIndex():
+        if len(self.actions) == self.board_size ** 2:
             return True, -1  # draw
         return False, 0

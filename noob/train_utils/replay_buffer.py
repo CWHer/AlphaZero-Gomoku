@@ -21,7 +21,7 @@ class ReplayBuffer():
         if not os.path.exists(dataset_dir):
             os.mkdir(dataset_dir)
 
-        print("save replay buffer {}".format(version))
+        print("save replay buffer version({})".format(version))
         with open(dataset_dir +
                   f"/data_{version}.pkl", "wb") as f:
             pickle.dump(self.buffer, f)
@@ -42,14 +42,9 @@ class ReplayBuffer():
         enhance data by rotating and flipping
 
         """
-        # TODO: debug
         board_size, data = MDP_CONFIG.board_size, []
         for state, mcts_prob, value in zip(states, mcts_probs, values):
             for i in range(4):
-                # debug
-                plotHeatMap(mcts_prob, "none")
-                plotSparseMatrix(state[0], "none")
-
                 # rotate
                 new_state = np.rot90(state, i, axes=(1, 2))
                 new_mcts_prob = np.rot90(
@@ -57,8 +52,8 @@ class ReplayBuffer():
                 data.append((new_state, new_mcts_prob.flatten(), value))
 
                 # debug
-                plotHeatMap(new_mcts_prob, "none")
-                plotSparseMatrix(new_state[0], "board")
+                # plotHeatMap(new_mcts_prob, "none")
+                # plotSparseMatrix(new_state[0], "none")
 
                 # flip
                 new_state = np.array([np.fliplr(s) for s in new_state])
@@ -66,8 +61,8 @@ class ReplayBuffer():
                 data.append((new_state, new_mcts_prob.flatten(), value))
 
                 # debug
-                plotHeatMap(new_mcts_prob, "none")
-                plotSparseMatrix(new_state[0], "board")
+                # plotHeatMap(new_mcts_prob, "none")
+                # plotSparseMatrix(new_state[0], "none")
 
         return data
 

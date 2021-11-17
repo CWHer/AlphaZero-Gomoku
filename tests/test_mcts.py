@@ -1,7 +1,8 @@
+import torch
 from icecream import ic
 
-from agent.network import PolicyValueNet
 from agent.mcts import MCTSPlayer
+from agent.network import PolicyValueNet
 from env.simulator import Simulator
 
 env = Simulator()
@@ -18,6 +19,8 @@ env.step(Simulator.Coord2Idx((5, 5)))
 env.print()
 # ic(env.isDone())
 # env.backtrack(1)
-player = MCTSPlayer(PolicyValueNet())
+net = PolicyValueNet()
+net.setDevice(torch.device("cpu"))
+player = MCTSPlayer(net)
 action, mcts_prob = player.getAction(env, is_train=True)
 ic(env.Idx2Coord(action))

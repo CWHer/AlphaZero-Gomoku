@@ -5,7 +5,7 @@ from train_utils.game import selfPlay, contest
 from train_utils.replay_buffer import ReplayBuffer
 
 net = PolicyValueNet()
-states, mcts_probs, values = selfPlay(net)
+states, mcts_probs, values = selfPlay(net, seed=0)
 buffer = ReplayBuffer()
 # for state in states:
 #     print(state[-1][0][0])

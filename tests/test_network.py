@@ -1,3 +1,4 @@
+import torch
 from icecream import ic
 from torchsummary import summary
 
@@ -7,7 +8,8 @@ from env.simulator import Simulator
 from utils import plotSparseMatrix
 
 net = PolicyValueNet()
-summary(net.net, (11, 15, 15), batch_size=512)
+# net.setDevice(torch.device("cpu"))
+# summary(net.net, (11, 15, 15), batch_size=512)
 
 env = Simulator()
 # ic(env.getEmptyIndex())

@@ -7,6 +7,9 @@ checkpoint/
 # store data
 dataset/
 
+# hyper-parameters
+parameters/
+
 test.py
 *.exe
 *.zip

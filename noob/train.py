@@ -1,4 +1,5 @@
 import copy
+import multiprocessing
 from multiprocessing import Pool
 
 import numpy as np
@@ -23,7 +24,7 @@ class Trainer():
     @timeLog
     def collectData(self):
         ic("collect data")
-        self.net.setDevice(torch.device("cpu"))
+        # self.net.setDevice(torch.device("cpu"))
 
         games = [
             (self.net, np.random.randint(2 ** 30))
@@ -35,11 +36,11 @@ class Trainer():
                     self.replay_buffer.add(*result)
                     pbar.update()
 
-    @ timeLog
+    @timeLog
     def evaluate(self):
         ic("evaluate model")
-        self.net.setDevice(torch.device("cpu"))
-        self.best_net.setDevice(torch.device("cpu"))
+        # self.net.setDevice(torch.device("cpu"))
+        # self.best_net.setDevice(torch.device("cpu"))
 
         results = {0: 0, 1: 0, -1: 0}
         with tqdm(total=TRAIN_CONFIG.num_contest) as pbar:
@@ -69,7 +70,7 @@ class Trainer():
 
     def train(self):
         ic("train model")
-        self.net.setDevice(torch.device("cuda:0"))
+        # self.net.setDevice(torch.device("cuda:0"))
 
         train_iter = self.replay_buffer.trainIter()
         for i in range(1, TRAIN_CONFIG.train_epochs + 1):
@@ -117,6 +118,8 @@ class Trainer():
 
 
 if __name__ == "__main__":
+    # NOTE: multiprocessing with CUDA is available on Linux
+    multiprocessing.set_start_method("spawn")
 
     trainer = Trainer()
     trainer.run()

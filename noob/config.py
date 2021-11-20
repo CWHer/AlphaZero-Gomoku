@@ -1,16 +1,18 @@
+import datetime
+import json
 from collections import namedtuple
 
 # NOTE: dictionaries are transformed to namedtuples
 
 MDP_CONFIG = {
-    "board_size": 10,
+    "board_size": 12,
     "win_length": 5,
 }
 
 NETWORK_CONFIG = {
     "periods_num": 3,
     "num_channels": 128,
-    "num_res": 2,
+    "num_res": 4,
 }
 
 MCTS_CONFIG = {
@@ -31,7 +33,8 @@ TRAIN_CONFIG = {
     "train_threshold": 10000,
     "replay_size": 1000000,
     "dataset_dir": "dataset",
-    "data_save_freq": 50,
+    "data_save_freq": 10,
+    "para_dir": "parameters",
 
     "train_num": 10000,
     "process_num": 10,
@@ -40,8 +43,27 @@ TRAIN_CONFIG = {
     "update_threshold": 0.55,
     "num_contest": 20,
     # data generation
-    "game_num": 20,
+    "game_num": 10,
 }
+
+
+def saveSettings():
+    """[summary]
+    save parameters
+    """
+    para_dir = TRAIN_CONFIG.para_dir
+
+    import os
+    if not os.path.exists(para_dir):
+        os.mkdir(para_dir)
+
+    timestamp = datetime.datetime.now().strftime("%m-%d_%H-%M-%S")
+    with open(para_dir +
+              f"/para_{timestamp}.json", "w") as f:
+        json.dump(
+            [MDP_CONFIG, NETWORK_CONFIG,
+             MCTS_CONFIG, TRAIN_CONFIG], f, indent=4)
+
 
 MDP_CONFIG_TYPE = namedtuple("MDP_CONFIG", MDP_CONFIG.keys())
 MDP_CONFIG = MDP_CONFIG_TYPE._make(MDP_CONFIG.values())

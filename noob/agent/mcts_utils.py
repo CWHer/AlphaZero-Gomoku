@@ -91,7 +91,10 @@ class TreeNode():
         for child in self.children:
             if child.action == action:
                 return child
+
+        ic.configureOutput(includeContext=True)
         printError(True, "fail to find child!")
+        ic.configureOutput(includeContext=False)
 
     def printDebugInfo(self):
         total_N = self.getVisCount()

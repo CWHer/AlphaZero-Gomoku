@@ -2,6 +2,7 @@ from itertools import product
 
 import numpy as np
 from config import MDP_CONFIG
+from icecream import ic
 from utils import printError
 
 
@@ -95,9 +96,11 @@ class Simulator():
         NOTE: this would change Simulator internal variables
         """
         coord = self.Idx2Coord(index)
+        ic.configureOutput(includeContext=True)
         printError(
             self.board[coord] != -1,
             f"try to repeat a existent step {coord} !")
+        ic.configureOutput(includeContext=False)
         self.board[coord] = self.turn
 
         # check terminal
@@ -118,10 +121,12 @@ class Simulator():
 
         NOTE: this would change Simulator internal variables
         """
+        ic.configureOutput(includeContext=True)
         printError(
             self.actions[-1] != index,
             f"try to backtrack a non-existent step {index} !"
         )
+        ic.configureOutput(includeContext=False)
 
         self.turn = self.turn ^ 1
         self.actions.pop(-1)

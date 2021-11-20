@@ -141,7 +141,8 @@ class MCTSPlayer():
             #              + MCTS_CONFIG.dirichlet_eps * noise), "adding noise")])
         else:
             # NOTE: almost equivalent to argmax
-            action = np.random.choice(actions, p=probs)
+            # action = np.random.choice(actions, p=probs)
+            action = actions[np.argmax(probs)]
 
         mcts_prob = np.zeros(MDP_CONFIG.board_size ** 2)
         mcts_prob[np.array(actions)] = probs

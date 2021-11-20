@@ -11,7 +11,7 @@ from .network_utils import ResBlock, conv3x3
 
 class Network(nn.Module):
     """[summary]
-    toy AlphaZero network 
+    toy AlphaZero network
     """
 
     def __init__(self):
@@ -79,15 +79,21 @@ class PolicyValueNet():
         if not os.path.exists(checkpoint_dir):
             os.mkdir(checkpoint_dir)
 
-        print("save network version({})".format(version))
+        print("save network & optimizer / version({})".format(version))
         torch.save(
             self.net.state_dict(),
             checkpoint_dir + f"/model_{version}")
+        torch.save(
+            self.optimizer.state_dict(),
+            checkpoint_dir + f"/optimizer_{version}")
 
-    def load(self, model_dir):
+    def load(self, model_dir, optimizer_dir=None):
         print("load network {}".format(model_dir))
         self.net.load_state_dict(torch.load(
-            model_dir, map_location=torch.device("cuda:0")))
+            model_dir, map_location=self.device))
+        if not optimizer_dir is None:
+            print("load optimizer {}".format(optimizer_dir))
+            self.optimizer.load_state_dict(torch.load(optimizer_dir))
 
     def predict(self, features):
         """[summary]

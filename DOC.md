@@ -11,6 +11,7 @@
 - [x] Single player mode
 - [x] Two player mode
 - [ ] comments
+- [ ] How to share model between different processes
 - [ ] ...
 
 
@@ -20,6 +21,10 @@
 大致如下图所示（不完全一致）
 
 Self Play阶段使用CPU inference（~~显存不够~~）
+
+- [ ] 在Linux下可以用GPU inference，但是每个process都会copy一份model
+
+  在Windows下直接报错，只能用CPU inference
 
 ![](assets/code-structure.png)
 
@@ -55,7 +60,7 @@ Self Play阶段使用CPU inference（~~显存不够~~）
 
 ### 训练Pipeline
 
-1. Self Play生成数据（CPU并行），保存在replay buffer
+1. Self Play生成数据，保存在replay buffer
 2. 数据量足够后开始训练model
 3. 几轮训练后与best net对局，胜率>55%则更新模型
 

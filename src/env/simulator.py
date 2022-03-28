@@ -4,7 +4,7 @@ from typing import List, Tuple
 import numpy as np
 from config import ENV_CONFIG
 from icecream import ic
-from utils import printError
+from utils import plotHeatMap, printError
 
 
 class Simulator():
@@ -46,8 +46,30 @@ class Simulator():
         x, y = coord
         return x * ENV_CONFIG.board_size + y
 
+    def plotActionProb(
+            self, actions_probs: List[Tuple[int, float]]):
+        """[summary]
+        DEBUG function
+        """
+        probs = np.zeros(
+            (ENV_CONFIG.board_size, ) * 2)
+
+        for action, prob in actions_probs:
+            coord = self.Idx2Coord(action)
+            probs[coord] = prob
+
+            ic.configureOutput(includeContext=True)
+            printError(
+                self.board[coord] != -1,
+                ic.format("invalid action")
+            )
+            ic.configureOutput(includeContext=False)
+
+        plotHeatMap(
+            probs, "Actions-Probs", "actions_probs")
+
     @staticmethod
-    def chgCoord(coord, direction) -> Tuple[int, int]:
+    def __chgCoord(coord, direction) -> Tuple[int, int]:
         return tuple(np.array(coord) + Simulator.__OFFSETS[direction])
 
     def __count(self, coord, direction, col) -> int:
@@ -57,7 +79,7 @@ class Simulator():
         num = 0
         while (self.isValidPos(coord)
                and self.board[coord] == col):
-            coord = self.chgCoord(coord, direction)
+            coord = self.__chgCoord(coord, direction)
             num += 1
         return num
 
@@ -74,13 +96,13 @@ class Simulator():
         """[summary]
         beautified print
         """
-        print("".join(["{:8}".format(i)
-              for i in range(ENV_CONFIG.board_size)]) + "\n\n")
+        print("".join(["{:4}".format(i)
+              for i in range(ENV_CONFIG.board_size)]) + "\n")
         for i in range(ENV_CONFIG.board_size):
             chesses = map(
-                lambda x: ("_" if x == -1 else str(x)).center(8),
+                lambda x: ("_" if x == -1 else str(x)).center(4),
                 self.board[i, :].tolist())
-            print("{:<4}".format(i) + "".join(chesses) + "\n\n")
+            print("{:<2}".format(i) + "".join(chesses) + "\n")
         print("")
     # <<< load & save utils
 
@@ -100,7 +122,9 @@ class Simulator():
 
         ic.configureOutput(includeContext=True)
         printError(
-            self.board[coord] != -1, f"duplicate step {coord} !")
+            self.board[coord] != -1,
+            ic.format(f"duplicate step {coord} !")
+        )
         ic.configureOutput(includeContext=False)
 
         self.board[coord] = self.turn
@@ -109,7 +133,7 @@ class Simulator():
         n_direction = len(self.__OFFSETS) // 2
         for i in range(n_direction):
             # forward and reverse directions
-            cnt = self.__count(coord, i, self.turn) + 1
+            cnt = self.__count(coord, i, self.turn) - 1
             cnt += self.__count(coord, i + n_direction, self.turn)
 
             if cnt >= ENV_CONFIG.win_cnt:

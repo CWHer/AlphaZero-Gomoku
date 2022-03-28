@@ -1,5 +1,3 @@
-import sys
-import time
 from functools import wraps
 from typing import List
 
@@ -10,10 +8,11 @@ import numpy as np
 def timeLog(func):
     @wraps(func)
     def clocked(*args, **kwargs):
-        start_time = time.time()
+        from time import time
+        start_time = time()
         ret = func(*args, **kwargs)
-        print("{} finishes after {:.2f} s".format(
-            func.__name__, time.time() - start_time))
+        print("{}() finishes after {:.2f} s".format(
+            func.__name__, time() - start_time))
         return ret
     return clocked
 
@@ -31,6 +30,8 @@ def printWarn(expr: bool, msg):
 def printError(expr: bool, msg):
     if expr:
         print("[ERROR]: {}".format(msg))
+
+        import sys
         sys.exit(1)
 # <<< log utils
 

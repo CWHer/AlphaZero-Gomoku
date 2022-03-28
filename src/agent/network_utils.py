@@ -1,58 +1,53 @@
 import copy
 
 import numpy as np
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from config import MDP_CONFIG, NETWORK_CONFIG
+from config import ENV_CONFIG, NETWORK_CONFIG
 from env.simulator import Simulator
-from icecream import ic
 
 
 class ObsEncoder():
     @staticmethod
     def encode(env: Simulator) -> np.ndarray:
         """[summary]
-        features selection
+        feature selection
 
         NOTE: e.g. when NETWORK_CONFIG.periods_num = 5,
             return matrix with shape: (5 * 2 + 1, BOARD_SIZE, BOARD_SIZE),
-            1. current position of black and the previous 4 time periods
-                1 if black stone here, 0 if back stone not here
-            2. current position of white and the previous 4 time periods
-            3. all 0/1 matrix (indicate who is to play, same as env.turn)
-
+            1. current positions (0-1 matrix) of black stones and the previous 4 time periods
+            2. current positions of white stones and the previous 4 time periods
+            3. all 0/1 matrix (indicate who is to play, == env.turn)
         """
-        periods_num = NETWORK_CONFIG.periods_num
-        features = np.zeros(
-            (periods_num * 2 + 1, *(MDP_CONFIG.board_size, ) * 2))
-
+        # deepcopy
         env = copy.deepcopy(env)
+
+        periods_num = NETWORK_CONFIG.periods_num
+        board_size = (ENV_CONFIG.board_size, ) * 2
+        features = np.zeros(
+            (periods_num * 2 + 1, *board_size), dtype=np.float32)
 
         # who is to play
         if env.turn == 1:
-            features[-1, ...] = np.ones(
-                (MDP_CONFIG.board_size, ) * 2)
+            features[-1, ...] = np.ones(board_size)
 
         for i in range(periods_num):
-            # black
-            features[i, ...] = (env.board == 0).astype(int)
-            # white
-            features[i + periods_num, ...] = (env.board == 1).astype(int)
+            # black stone
+            features[i, ...] = (env.board == 0)
+            # white stone
+            features[i + periods_num, ...] = (env.board == 1)
 
             # backtrack
             for _ in range(2):
-                if env.actions:
-                    index = env.actions[-1]
-                    env.backtrack(index)
+                if env.action_log:
+                    env.backtrack()
 
         return features
 
 
 def conv3x3(in_channels, out_channels):
     return nn.Conv2d(
-        in_channels, out_channels,
-        kernel_size=3, padding=1, bias=False)
+        in_channels, out_channels, kernel_size=3, padding=1)
 
 
 class ResBlock(nn.Module):

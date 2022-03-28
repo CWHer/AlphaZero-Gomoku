@@ -1,7 +1,8 @@
-from itertools import product
+import pickle
+from typing import List, Tuple
 
 import numpy as np
-from config import MDP_CONFIG
+from config import ENV_CONFIG
 from icecream import ic
 from utils import printError
 
@@ -10,11 +11,12 @@ class Simulator():
     """[summary]
     Gomoku simulator
 
-    NOTE: black: 0 / white: 1 / empty: -1
-    NOTE: coord = (x, y)  index = x * board_size + y
+    NOTE: black == 0 / white == 1 / empty == -1
+    NOTE:
+        coord = (x, y)
+        index = x * board_size + y
     """
-    board_size = MDP_CONFIG.board_size
-    DELTA = np.array(
+    __OFFSETS = np.array(
         list(zip([0, -1, -1, -1, 0, 1, 1, 1],
                  [-1, -1, 0, 1, 1, 1, 0, -1])))
 
@@ -22,127 +24,119 @@ class Simulator():
         self.initBoard()
 
     def initBoard(self):
-        self.board = -np.ones(
-            (self.board_size, ) * 2, dtype=int)
-        self.winner = -1    # who is winner
-        self.turn = 0       # who is to play
-        self.actions = []   # record actions taken
+        self.board = - np.ones(
+            (ENV_CONFIG.board_size, ) * 2, dtype=np.int32)
+        self.turn = 0          # who is to play
+        self.winner = -1       # who is winner
+        self.action_log = []   # record actions taken
 
     @staticmethod
-    def isValidPos(coord) -> bool:
+    def isValidPos(coord: Tuple[int, int]) -> bool:
         x, y = coord
-        return (x >= 0 and x < Simulator.board_size
-                and y >= 0 and y < Simulator.board_size)
+        return (0 <= x < ENV_CONFIG.board_size
+                and 0 <= y < ENV_CONFIG.board_size)
 
     @staticmethod
-    def Idx2Coord(index) -> tuple:
-        return (index // Simulator.board_size,
-                index % Simulator.board_size)
+    def Idx2Coord(index: int) -> Tuple[int, int]:
+        return (index // ENV_CONFIG.board_size,
+                index % ENV_CONFIG.board_size)
 
     @staticmethod
-    def Coord2Idx(coord) -> int:
+    def Coord2Idx(coord: Tuple[int, int]) -> int:
         x, y = coord
-        return x * Simulator.board_size + y
+        return x * ENV_CONFIG.board_size + y
 
     @staticmethod
-    def chgCoord(coord, direction):
-        return tuple(np.array(coord) + Simulator.DELTA[direction])
+    def chgCoord(coord, direction) -> Tuple[int, int]:
+        return tuple(np.array(coord) + Simulator.__OFFSETS[direction])
 
     def __count(self, coord, direction, col) -> int:
         """[summary]
-        count # chesses with same color along certain direction
+        count # chesses with "col" color along certain direction
         """
-        ret = 0
+        num = 0
         while (self.isValidPos(coord)
                and self.board[coord] == col):
             coord = self.chgCoord(coord, direction)
-            ret += 1
-        return ret
+            num += 1
+        return num
 
-    def read(self, file_name="board.txt"):
-        """[summary]
-        format: _ 0 _ 0 _ 1 _ _ _ ...
-        """
-        with open(file_name, "r") as f:
-            for i in range(self.board_size):
-                line = f.readline().replace("_", "-1").split(" ")
-                self.board[i, :] = np.array(list(map(int, line)))
-        # self.print()
+    # >>> load & save utils
+    def load(self, file_name="board.pkl"):
+        with open(file_name, "rb") as f:
+            self.board = pickle.load(f)
 
-    def print(self):
+    def save(self, file_name="board.pkl"):
+        with open(file_name, "wb") as f:
+            pickle.dump(self.board, f)
+
+    def display(self):
         """[summary]
-        format: _ 0 _ 0 _ 1 _ _ _ ...
+        beautified print
         """
-        for coord in product(
-                range(self.board_size), repeat=2):
-            col = self.board[coord]
-            print("{} ".format(
-                "_" if col == -1 else col),
-                end=" " if coord[-1] != self.board_size - 1 else "\n")
+        print("".join(["{:8}".format(i)
+              for i in range(ENV_CONFIG.board_size)]) + "\n\n")
+        for i in range(ENV_CONFIG.board_size):
+            chesses = map(
+                lambda x: ("_" if x == -1 else str(x)).center(8),
+                self.board[i, :].tolist())
+            print("{:<4}".format(i) + "".join(chesses) + "\n\n")
         print("")
+    # <<< load & save utils
 
-    def getEmptyIndex(self):
+    # >>> MDP utils
+    def getEmptyIndices(self) -> List[int]:
         """[summary]
-        return a list of empty indices (NOT coordinates)
         e.g. [0, 10, 12, 16, 20, ...]
         """
         x, y = np.where(self.board == -1)
         return [self.Coord2Idx(coord) for coord in zip(x, y)]
 
-    def step(self, index):
+    def step(self, index) -> None:
         """[summary]
-        put a chess
-
-        NOTE: this would change Simulator internal variables
+        step forward
         """
         coord = self.Idx2Coord(index)
+
         ic.configureOutput(includeContext=True)
         printError(
-            self.board[coord] != -1,
-            f"try to repeat a existent step {coord} !")
+            self.board[coord] != -1, f"duplicate step {coord} !")
         ic.configureOutput(includeContext=False)
+
         self.board[coord] = self.turn
 
         # check terminal
-        for i in range(4):
-            c1 = self.__count(coord, i, self.turn)
-            # opposite direction
-            c2 = self.__count(coord, i + 4, self.turn)
-            if c1 + c2 - 1 >= MDP_CONFIG.win_length:
+        n_direction = len(self.__OFFSETS) // 2
+        for i in range(n_direction):
+            # forward and reverse directions
+            cnt = self.__count(coord, i, self.turn) + 1
+            cnt += self.__count(coord, i + n_direction, self.turn)
+
+            if cnt >= ENV_CONFIG.win_cnt:
                 self.winner = self.turn
                 break
 
-        self.turn = self.turn ^ 1
-        self.actions.append(index)
+        self.turn ^= 1
+        self.action_log.append(index)
 
-    def backtrack(self, index):
+    def backtrack(self) -> None:
         """[summary]
         backtrack a step
-
-        NOTE: this would change Simulator internal variables
         """
-        ic.configureOutput(includeContext=True)
-        printError(
-            self.actions[-1] != index,
-            f"try to backtrack a non-existent step {index} !"
-        )
-        ic.configureOutput(includeContext=False)
-
-        self.turn = self.turn ^ 1
-        self.actions.pop(-1)
-
-        self.board[self.Idx2Coord(index)] = -1
+        self.turn ^= 1
         self.winner = -1
+        last_step = self.action_log.pop(-1)
+        self.board[self.Idx2Coord(last_step)] = -1
 
-    def isDone(self):
+    def isEnd(self) -> Tuple[bool, int]:
         """[summary]
-
         Returns:
-            game_status (bool): [description]. whether game is done
+            is_end (bool): [description].
             winner (int): [description]. winner (-1 for draw)
         """
         if self.winner != -1:
             return True, self.winner
-        if len(self.actions) == self.board_size ** 2:
-            return True, -1  # draw
-        return False, 0
+
+        return (True, -1) if (len(self.action_log) ==
+                              ENV_CONFIG.board_size ** 2) else (False, 0)
+    # <<< MDP utils

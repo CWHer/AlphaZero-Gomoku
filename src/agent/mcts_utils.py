@@ -1,103 +1,120 @@
+from __future__ import annotations
+
 import math
+from typing import List, Optional, Tuple
 
 from config import MCTS_CONFIG
 from icecream import ic
-
-from utils import printError
+from utils import printError, printInfo
 
 
 class PUCT():
     """[summary]
-    PUCT functor
+    UCT with policy
     """
 
-    def __init__(self, prior_prob) -> None:
-        self.prob = prior_prob
+    def __init__(
+            self, prior_prob: float) -> None:
         self.Q, self.N = 0, 0
+        self.prob = prior_prob
+        self.c_puct = MCTS_CONFIG.c_puct
 
-    def update(self, v):
-        # self.Q = (self.Q * self.N + v) / (self.N + 1)
+    def update(self, v: float) -> None:
         self.N += 1
         self.Q += (v - self.Q) / self.N
 
-    def U(self, c_puct, total_N):
-        return c_puct * self.prob * \
-            math.sqrt(total_N) / (1 + self.N)
+    def U(self, Np) -> float:
+        return self.prob * math.sqrt(Np) / (self.N + 1)
 
-    def PUCT(self, total_N):
-        # TODO: add puct decay
-        return self.Q + self.U(MCTS_CONFIG.c_puct, total_N)
+    def PUCT(self, Np) -> float:
+        return self.Q + self.c_puct * self.U(Np)
 
 
 class TreeNode():
     """[summary]
-    MCTS tree node
+    node of MCTS
 
-    NOTE: a node is either unvisited or fully expanded
-    NOTE: action = x * board_size + y
+    NOTE: 
+        1. node is either unvisited or fully expanded
+        2. action = x * board_size + y, i.e. == index 
     """
 
-    def __init__(self, parent, action, prior_prob) -> None:
+    def __init__(
+            self, parent: Optional[TreeNode],
+            action: Optional[int], prior_prob: float) -> None:
         """[summary]
         s (parent) --> a (action) --> s' (self)
-        NOTE: here action is an index
         """
         self.parent = parent
         self.action = action
         self.puct = PUCT(prior_prob)
-        self.children = None
-
-    def getVisCount(self):
-        return self.puct.N
-
-    def PUCT(self, total_N):
-        return self.puct.PUCT(total_N)
-
-    def update(self, v):
-        self.puct.update(v)
+        self.children: Optional[List[TreeNode]] = None
 
     @property
-    def isLeaf(self):
+    def isLeaf(self) -> bool:
         return self.children is None
 
     @property
-    def isRoot(self):
+    def isRoot(self) -> bool:
         return self.parent is None
 
-    def select(self):
-        """[summary]
-        select the child node with maximal PUCT
-        """
-        total_N = self.getVisCount()
-        return max(self.children,
-                   key=lambda x: x.PUCT(total_N))
+    def getVisCount(self) -> float:
+        return self.puct.N
 
-    def expand(self, actions_probs) -> None:
+    def PUCT(self, Np) -> float:
+        return self.puct.PUCT(Np)
+
+    def update(self, v: float) -> None:
+        self.puct.update(v)
+
+    def select(self) -> TreeNode:
         """[summary]
-        (fully) expand this node with prior probabilities
-        Args:
-            actions_probs (list): [description]. a list of (action, prior_prob)
+        select child with maximum PUCT
+        """
+        ic.configureOutput(includeContext=True)
+        printError(self.isLeaf, "nothing to select")
+        ic.configureOutput(includeContext=False)
+
+        Np = self.getVisCount()
+        return max(
+            self.children, key=lambda x: x.PUCT(Np))
+
+    def expand(self, actions_probs: List[Tuple[int, float]]):
+        """[summary]
+        fully expand self with prior probs
         """
         self.children = [
             TreeNode(self, action, prior_prob)
-            for action, prior_prob in actions_probs]
+            for action, prior_prob in actions_probs
+        ]
 
-    def transfer(self, action):
+    def step(self, action: int) -> TreeNode:
         """[summary]
-        transfer to next state
+        transit to next state
         """
-        if self.children is None:
-            return None
+        if self.isLeaf:
+            return TreeNode(None, None, 1.0)
+
+        next_state = None
         for child in self.children:
             if child.action == action:
-                return child
+                next_state = child
+                break
+        if not next_state is None:
+            next_state.parent = None
+            return next_state
 
         ic.configureOutput(includeContext=True)
-        printError(True, "fail to find child!")
+        printError(True, ic.format("fail to find child!"))
         ic.configureOutput(includeContext=False)
 
-    def printDebugInfo(self):
-        total_N = self.getVisCount()
+    def display(self):
+        """[summary]
+        DEBUG function
+        """
+        Np = self.getVisCount()
+        msg = "Action: {:>3} with N: {:>4}, Q: {:>+.4f}, PUCT: {:>+.4f}"
         for child in self.children:
-            print("Action: {} with Q {:>6f}, PUCT {:>6f}, N {}".format(
-                child.action, child.puct.Q, child.PUCT(total_N), child.getVisCount()))
+            printInfo(msg.format(
+                child.action, child.getVisCount(),
+                child.puct.Q, child.PUCT(Np)))

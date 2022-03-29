@@ -18,7 +18,8 @@ class Simulator():
     """
     __OFFSETS = np.array(
         list(zip([0, -1, -1, -1, 0, 1, 1, 1],
-                 [-1, -1, 0, 1, 1, 1, 0, -1])))
+                 [-1, -1, 0, 1, 1, 1, 0, -1]))
+    )
 
     def __init__(self) -> None:
         self.initBoard()
@@ -76,12 +77,12 @@ class Simulator():
         """[summary]
         count # chesses with "col" color along certain direction
         """
-        num = 0
+        col_cnt = 0
         while (self.isValidPos(coord)
                and self.board[coord] == col):
             coord = self.__chgCoord(coord, direction)
-            num += 1
-        return num
+            col_cnt += 1
+        return col_cnt
 
     # >>> load & save utils
     def load(self, file_name="board.pkl"):
@@ -96,14 +97,23 @@ class Simulator():
         """[summary]
         beautified print
         """
-        print("".join(["{:4}".format(i)
-              for i in range(ENV_CONFIG.board_size)]) + "\n")
+        width, height = ENV_CONFIG.output_size
+
+        def printLine(prefix, content):
+            print(prefix, "".join(content), "\n" * height, end="")
+
+        printLine(
+            prefix=" " * width,
+            content=[f"[{i}]".center(width)
+                     for i in range(ENV_CONFIG.board_size)]
+        )
         for i in range(ENV_CONFIG.board_size):
             chesses = map(
-                lambda x: ("_" if x == -1 else str(x)).center(4),
+                lambda x: ("_" if x == -1 else str(x)).center(width),
                 self.board[i, :].tolist())
-            print("{:<2}".format(i) + "".join(chesses) + "\n")
-        print("")
+            printLine(
+                prefix=f"[{i}]".center(width),
+                content=chesses)
     # <<< load & save utils
 
     # >>> MDP utils
@@ -129,7 +139,7 @@ class Simulator():
 
         self.board[coord] = self.turn
 
-        # check terminal
+        # check termination condition
         n_direction = len(self.__OFFSETS) // 2
         for i in range(n_direction):
             # forward and reverse directions
@@ -145,7 +155,7 @@ class Simulator():
 
     def backtrack(self) -> None:
         """[summary]
-        backtrack a step
+        backtrack one step
         """
         self.turn ^= 1
         self.winner = -1

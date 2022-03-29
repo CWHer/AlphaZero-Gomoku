@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from config import ENV_CONFIG, NETWORK_CONFIG, TRAIN_CONFIG
+from torch.cuda.amp import GradScaler, autocast
 from utils import printError, printInfo
 
 from .network_utils import ResBlock, conv3x3
@@ -64,6 +65,7 @@ class PolicyValueNet():
             lr=NETWORK_CONFIG.learning_rate,
             weight_decay=NETWORK_CONFIG.l2_weight
         )
+        self.scaler = GradScaler()
 
     def setDevice(self, loc: str = "cuda:0"):
         self.device = torch.device(loc)
@@ -98,6 +100,7 @@ class PolicyValueNet():
 
         features = torch.from_numpy(
             np.expand_dims(features, 0)).to(self.device)
+        # with autocast():
         with torch.no_grad():
             logits, value = self.net(features)
             probs = F.softmax(logits, dim=-1).cpu().numpy()
@@ -114,20 +117,20 @@ class PolicyValueNet():
         states, mcts_probs, mcts_vals = \
             map(lambda x: x.to(self.device), data_batch)
 
-        # loss function: (z - v) ^ 2 - pi ^ T * log(p) + c || theta || ^ 2
-        logits, values = self.net(states)
+        with autocast():
+            logits, values = self.net(states)
 
-        # accuracy
-        with torch.no_grad():
-            actions = logits.argmax(dim=-1)
-            expert_actions = mcts_probs.argmax(dim=-1)
-            accuracy = (actions == expert_actions).float().mean().item()
+            # accuracy
+            with torch.no_grad():
+                actions = logits.argmax(dim=-1)
+                expert_actions = mcts_probs.argmax(dim=-1)
+                accuracy = (actions == expert_actions).float().mean().item()
 
-        # loss
-        value_loss = F.mse_loss(values.view(-1), mcts_vals)
-        policy_loss = F.cross_entropy(logits, mcts_probs)
-        loss = NETWORK_CONFIG.value_weight * value_loss + policy_loss
-        printError(torch.isnan(loss), "loss is nan")
+            # loss function: (z - v) ^ 2 - pi ^ T * log(p) + c || theta || ^ 2
+            value_loss = F.mse_loss(values.view(-1), mcts_vals)
+            policy_loss = F.cross_entropy(logits, mcts_probs)
+            loss = NETWORK_CONFIG.value_weight * value_loss + policy_loss
+            printError(torch.isnan(loss), "loss is nan")
 
         # DEBUG: torchviz
         # from torchviz import make_dot
@@ -136,7 +139,8 @@ class PolicyValueNet():
         # dot.render("loss")
 
         self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
+        self.scaler.scale(loss).backward()
+        self.scaler.step(self.optimizer)
+        self.scaler.update()
 
         return loss.item(), accuracy

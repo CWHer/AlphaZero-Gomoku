@@ -7,10 +7,11 @@
 - [ ] Monte Carlo Tree Search (without network)
 - [x] Set proper rewards
 - [x] Multiprocessing
-- [ ] TensorBoard real-time monitoring
+- [x] TensorBoard 
 - [x] Single player mode
-- [x] Two player mode
-- [ ] comments
+- [x] Contest mode
+- [x] Mixed precision
+- [x] Add comments
 - [ ] How to share model between different processes
 - [ ] ...
 
@@ -20,11 +21,7 @@
 
 大致如下图所示（不完全一致）
 
-Self Play阶段使用CPU inference（~~显存不够~~）
-
-- [ ] 在Linux下可以用GPU inference，但是每个process都会copy一份model
-
-  在Windows下直接报错，只能用CPU inference
+- [ ] 使用Multiprocessing时，若使用GPU inference，则每个process都会copy一份model
 
 ![](assets/code-structure.png)
 
@@ -34,27 +31,27 @@ Self Play阶段使用CPU inference（~~显存不够~~）
 
 ### 文件说明
 
-| Agent文件夹      |                     |
+| agent            |                     |
 | ---------------- | ------------------- |
 | mcts.py          | MCTS (with network) |
-| mcts_utils.py    | PUCT, TreeNode类    |
+| mcts_utils.py    | PUCT, TreeNode      |
 | network.py       | PolicyValueNet      |
-| network_utils.py | 特征选择(encoder)   |
+| network_utils.py | feature encoder     |
 
-| Env文件夹    |            |
-| ------------ | ---------- |
-| simulator.py | 模拟五子棋 |
+| env          |        |
+| ------------ | ------ |
+| simulator.py | Gomoku |
 
-| Train_utils文件夹 |                |
-| ----------------- | -------------- |
-| game.py           | 自我博弈，对战 |
-| replay_buffer.py  | 存储数据       |
+| train_utils      |                    |
+| ---------------- | ------------------ |
+| game.py          | self play, contest |
+| replay_buffer.py | store date         |
 
-| File            | Description          |
-| --------------- | -------------------- |
-| train.py (main) | 训练pipeline         |
-| utils.py        | 可视化及其它辅助函数 |
-| config.py       | 超参数设置           |
+| File            | Description       |
+| --------------- | ----------------- |
+| train.py (main) | training pipeline |
+| utils.py        | utility functions |
+| config.py       | hyper-parameters  |
 
 
 
@@ -65,8 +62,4 @@ Self Play阶段使用CPU inference（~~显存不够~~）
 3. 几轮训练后与best net对局，胜率>55%则更新模型
 
 
-
-### 特征选取
-
-参考AlphaZero
 

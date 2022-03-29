@@ -19,30 +19,30 @@ class Network(nn.Module):
     def __init__(self):
         super().__init__()
 
-        in_channels = NETWORK_CONFIG.periods_num * 2 + 1
-        num_channels = NETWORK_CONFIG.num_channels
-        num_actions = ENV_CONFIG.board_size ** 2
+        in_channels = NETWORK_CONFIG.n_periods * 2 + 1
+        n_channels = NETWORK_CONFIG.n_channels
+        n_actions = ENV_CONFIG.board_size ** 2
 
         # common layers
         self.common_net = nn.Sequential(
-            conv3x3(in_channels, num_channels),
-            nn.BatchNorm2d(num_channels), nn.ReLU(),
-            *[ResBlock(num_channels)
-              for _ in range(NETWORK_CONFIG.num_res)]
+            conv3x3(in_channels, n_channels),
+            nn.BatchNorm2d(n_channels), nn.ReLU(),
+            *[ResBlock(n_channels)
+              for _ in range(NETWORK_CONFIG.n_res)]
         )
 
         # policy head
         self.policy_head = nn.Sequential(
-            nn.Conv2d(num_channels, 4, kernel_size=1),
+            nn.Conv2d(n_channels, 4, kernel_size=1),
             nn.Flatten(), nn.ReLU(),
-            nn.Linear(4 * num_actions, num_actions)
+            nn.Linear(4 * n_actions, n_actions)
         )
 
         # value head
         self.value_head = nn.Sequential(
-            nn.Conv2d(num_channels, 2, kernel_size=1),
+            nn.Conv2d(n_channels, 2, kernel_size=1),
             nn.Flatten(), nn.ReLU(),
-            nn.Linear(2 * num_actions, 256),
+            nn.Linear(2 * n_actions, 256),
             nn.ReLU(), nn.Linear(256, 1),
             nn.Tanh()
         )
@@ -61,8 +61,8 @@ class PolicyValueNet():
 
         self.optimizer = optim.Adam(
             self.net.parameters(),
-            lr=TRAIN_CONFIG.learning_rate,
-            weight_decay=TRAIN_CONFIG.l2_weight
+            lr=NETWORK_CONFIG.learning_rate,
+            weight_decay=NETWORK_CONFIG.l2_weight
         )
 
     def setDevice(self, loc: str = "cuda:0"):
@@ -70,7 +70,7 @@ class PolicyValueNet():
         self.net.to(self.device)
 
     def save(self, version="default"):
-        checkpoint_dir = TRAIN_CONFIG.checkpoint_dir
+        checkpoint_dir = NETWORK_CONFIG.checkpoint_dir
 
         import os
         if not os.path.exists(checkpoint_dir):
@@ -110,9 +110,8 @@ class PolicyValueNet():
             loss (float): [description]
             accuracy (float): [description]
         """
-        # TODO
         self.net.train()
-        states, mcts_probs, mcts_values = \
+        states, mcts_probs, mcts_vals = \
             map(lambda x: x.to(self.device), data_batch)
 
         # loss function: (z - v) ^ 2 - pi ^ T * log(p) + c || theta || ^ 2
@@ -122,12 +121,12 @@ class PolicyValueNet():
         with torch.no_grad():
             actions = logits.argmax(dim=-1)
             expert_actions = mcts_probs.argmax(dim=-1)
-            accuracy = (actions == expert_actions).mean().item()
+            accuracy = (actions == expert_actions).float().mean().item()
 
         # loss
-        value_loss = F.mse_loss(values, mcts_values)
+        value_loss = F.mse_loss(values.view(-1), mcts_vals)
         policy_loss = F.cross_entropy(logits, mcts_probs)
-        loss = value_loss * TRAIN_CONFIG.value_weight + policy_loss
+        loss = NETWORK_CONFIG.value_weight * value_loss + policy_loss
         printError(torch.isnan(loss), "loss is nan")
 
         # DEBUG: torchviz

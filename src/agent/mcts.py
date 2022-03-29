@@ -68,8 +68,8 @@ class MCTS():
     def search(self, env: Simulator) -> Tuple[List, np.ndarray]:
         # NOTE: ensure that root is correct
 
-        # for _ in tqdm(range(MCTS_CONFIG.search_num)):
-        for _ in range(MCTS_CONFIG.search_num):
+        # for _ in tqdm(range(MCTS_CONFIG.n_search)):
+        for _ in range(MCTS_CONFIG.n_search):
             self.__search(copy.deepcopy(env))
         # self.root.display()
 
@@ -97,7 +97,7 @@ class MCTSPlayer():
     def step(self, action: int) -> None:
         self.mcts.step(action)
 
-    @timeLog
+    # @timeLog
     def getAction(
         self, env: Simulator, is_train=False) -> \
             Tuple[int, Tuple[np.ndarray, np.ndarray]]:

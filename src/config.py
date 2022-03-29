@@ -1,78 +1,108 @@
-import datetime
 import json
+import os
 from collections import namedtuple
+from datetime import datetime
 
-# NOTE: dictionaries are transformed to namedtuples
 
-MDP_CONFIG = {
-    "board_size": 12,
-    "win_length": 5,
+ENV_CONFIG = {
+    # board
+    "win_cnt": 5,
+    "board_size": 15,
+
+    # display
+    "output_size": (5, 2),
 }
 
 NETWORK_CONFIG = {
-    "periods_num": 3,
-    "num_channels": 128,
-    "num_res": 4,
+    "checkpoint_dir": "checkpoint",
+
+    # features
+    "n_periods": 2,
+
+    # network architecture
+    "n_res": 4,
+    "n_channels": 256,
+
+    # loss
+    "value_weight": 1,
+
+    # optimizer
+    "learning_rate": 0.001,
+    "l2_weight": 1e-4,
 }
 
 MCTS_CONFIG = {
-    "inv_temperature": 1/1,
-    "search_num": 1600,
     "c_puct": 5,
+    "n_search": 1600,
+
+    # action selection
+    "inv_temp": 1 / 1,
     "dirichlet_alpha": 0.3,
     "dirichlet_eps": 0.1,
 }
 
-TRAIN_CONFIG = {
-    "train_epochs": 5,
-    "c_loss": 1,
-    "l2_weight": 1e-4,
-    "learning_rate": 0.001,
-    "checkpoint_dir": "checkpoint",
-    "batch_size": 512,
-    "train_threshold": 10000,
-    "replay_size": 1000000,
+DATA_CONFIG = {
     "dataset_dir": "dataset",
-    "data_save_freq": 10,
-    "para_dir": "parameters",
+    "save_freq": 100,
+    "augment_data": True,
+    "replay_size": 20000,
 
-    "train_num": 10000,
-    "process_num": 10,
-    # evaluate model
-    "check_freq": 20,
-    "update_threshold": 0.55,
-    "num_contest": 20,
-    # data generation
-    "game_num": 10,
+    # sample
+    "train_threshold": 2000,
+    "sample_size": 512 * 2,
+    "batch_size": 512,
+}
+
+TRAIN_CONFIG = {
+    "parameters_dir": "parameters",
+    "log_dir": "logs/",
+
+    "epochs": 10000,
+    # multiprocessing
+    "n_process": 2,
+
+    # self play
+    "n_game": 2,
+
+    # evaluate
+    "eval_freq": 10,
+    "update_thr": 0.55,
+    "n_contest": 20,
 }
 
 
 def saveSettings():
-    """[summary]
-    save parameters
-    """
-    para_dir = TRAIN_CONFIG.para_dir
-
-    import os
+    para_dir = TRAIN_CONFIG["parameters_dir"]
     if not os.path.exists(para_dir):
         os.mkdir(para_dir)
 
-    timestamp = datetime.datetime.now().strftime("%m-%d_%H-%M-%S")
-    with open(para_dir +
-              f"/para_{timestamp}.json", "w") as f:
+    timestamp = datetime.now().strftime("%m-%d_%H-%M-%S")
+    TRAIN_CONFIG["log_dir"] += timestamp
+    file_path = para_dir + f"/para_{timestamp}.json"
+    with open(file_path, "w") as f:
         json.dump(
-            [MDP_CONFIG, NETWORK_CONFIG,
-             MCTS_CONFIG, TRAIN_CONFIG], f, indent=4)
+            {"ENV_CONFIG": ENV_CONFIG,
+             "NETWORK_CONFIG": NETWORK_CONFIG,
+             "MCTS_CONFIG": MCTS_CONFIG,
+             "DATA_CONFIG": DATA_CONFIG,
+             "TRAIN_CONFIG": TRAIN_CONFIG},
+            f, indent=4)
 
 
-MDP_CONFIG_TYPE = namedtuple("MDP_CONFIG", MDP_CONFIG.keys())
-MDP_CONFIG = MDP_CONFIG_TYPE._make(MDP_CONFIG.values())
+saveSettings()
+
+
+ENV_CONFIG_TYPE = namedtuple("ENV_CONFIG", ENV_CONFIG.keys())
+ENV_CONFIG = ENV_CONFIG_TYPE._make(ENV_CONFIG.values())
 
 NETWORK_CONFIG_TYPE = namedtuple("NETWORK_CONFIG", NETWORK_CONFIG.keys())
 NETWORK_CONFIG = NETWORK_CONFIG_TYPE._make(NETWORK_CONFIG.values())
 
 MCTS_CONFIG_TYPE = namedtuple("MCTS_CONFIG", MCTS_CONFIG.keys())
 MCTS_CONFIG = MCTS_CONFIG_TYPE._make(MCTS_CONFIG.values())
+
+DATA_CONFIG_TYPE = namedtuple("DATA_CONFIG", DATA_CONFIG.keys())
+DATA_CONFIG = DATA_CONFIG_TYPE._make(DATA_CONFIG.values())
 
 TRAIN_CONFIG_TYPE = namedtuple("TRAIN_CONFIG", TRAIN_CONFIG.keys())
 TRAIN_CONFIG = TRAIN_CONFIG_TYPE._make(TRAIN_CONFIG.values())

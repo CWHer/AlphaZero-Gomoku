@@ -10,6 +10,11 @@ dataset/
 # hyper-parameters
 parameters/
 
+# tensorboardX
+logs/
+
+default.png
 test.py
 *.exe
 *.zip
+*.pkl

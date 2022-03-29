@@ -1,86 +1,97 @@
 import pickle
-from collections import deque, namedtuple
+import random
+from collections import deque
 
 import numpy as np
 import torch
-from config import MDP_CONFIG, TRAIN_CONFIG
+from config import DATA_CONFIG, ENV_CONFIG
 from torch.utils.data import DataLoader, TensorDataset
-from utils import plotHeatMap, plotSparseMatrix
+from utils import plotHeatMap, plotSparseMatrix, printInfo
 
 
 class ReplayBuffer():
-    Data = namedtuple("data", "state mcts_prob value")
+    """[summary]
+    NOTE: data = (state, mcts_prob, mcts_val)
+    """
 
     def __init__(self) -> None:
-        self.buffer = deque(maxlen=TRAIN_CONFIG.replay_size)
+        self.buffer = deque(
+            maxlen=DATA_CONFIG.replay_size)
 
-    def size(self):
+    def __len__(self):
         return len(self.buffer)
 
-    def save(self, version="w"):
-        dataset_dir = TRAIN_CONFIG.dataset_dir
+    def save(self, version="default"):
+        dataset_dir = DATA_CONFIG.dataset_dir
 
         import os
         if not os.path.exists(dataset_dir):
             os.mkdir(dataset_dir)
 
-        print("save replay buffer version({})".format(version))
+        printInfo(f"save replay buffer version({version})")
         with open(dataset_dir +
                   f"/data_{version}.pkl", "wb") as f:
             pickle.dump(self.buffer, f)
 
-    def load(self, data_dir):
-        print("load replay buffer {}".format(data_dir))
-        with open(data_dir, "rb") as f:
+    def load(self, data_path):
+        printInfo(f"load replay buffer {data_path}")
+        with open(data_path, "rb") as f:
             self.buffer = pickle.load(f)
 
     def enough(self):
-        """[summary]
-        whether data is enough to start training
-        """
-        return len(self.buffer) > TRAIN_CONFIG.train_threshold
+        return len(self) > DATA_CONFIG.train_threshold
 
-    def __enhanceData(self, states, mcts_probs, values):
+    def __augmentData(
+            self, states, mcts_probs, mcts_vals):
         """[summary]
-        enhance data by rotating and flipping
-
+        augment data by rotating and flipping
         """
-        board_size, data = MDP_CONFIG.board_size, []
-        for state, mcts_prob, value in zip(states, mcts_probs, values):
+        data_buffer = []
+        board_size = (ENV_CONFIG.board_size, ) * 2
+        for state, mcts_prob, mcts_val in \
+                zip(states, mcts_probs, mcts_vals):
+
             for i in range(4):
                 # rotate
                 new_state = np.rot90(state, i, axes=(1, 2))
                 new_mcts_prob = np.rot90(
-                    mcts_prob.reshape((board_size, ) * 2), i)
-                data.append((new_state, new_mcts_prob.flatten(), value))
+                    mcts_prob.reshape(board_size), i)
+                data_buffer.append(
+                    (new_state, new_mcts_prob.flatten(), mcts_val))
+                # plotHeatMap(
+                #     new_mcts_prob, name=f"prob_rotate{i}")
+                # plotSparseMatrix(
+                #     new_state[0], name=f"state_rorate{i}")
 
-                # debug
-                # plotHeatMap(new_mcts_prob, "none")
-                # plotSparseMatrix(new_state[0], "none")
+                if not DATA_CONFIG.augment_data:
+                    break
 
                 # flip
-                new_state = np.array([np.fliplr(s) for s in new_state])
+                new_state = np.array(
+                    [np.fliplr(s) for s in new_state])
                 new_mcts_prob = np.fliplr(new_mcts_prob)
-                data.append((new_state, new_mcts_prob.flatten(), value))
+                data_buffer.append(
+                    (new_state, new_mcts_prob.flatten(), mcts_val))
+                # plotHeatMap(
+                #     new_mcts_prob, name=f"prob_flip{i}")
+                # plotSparseMatrix(
+                #     new_state[0], name=f"state_flip{i}")
 
-                # debug
-                # plotHeatMap(new_mcts_prob, "none")
-                # plotSparseMatrix(new_state[0], "none")
+        return data_buffer
 
-        return data
-
-    def add(self, states, mcts_probs, values):
-        """[summary]
-        """
+    def add(self, states, mcts_probs, mcts_vals):
         self.buffer.extend(
-            self.__enhanceData(states, mcts_probs, values))
+            self.__augmentData(states, mcts_probs, mcts_vals))
 
-    def trainIter(self):
-        """[summary]
-        generate dataset iterator for training
-        """
-        states, mcts_probs, values = map(torch.tensor, zip(*self.buffer))
-        data_set = TensorDataset(states, mcts_probs, values)
+    def sample(self) -> DataLoader:
+        selected_data = random.sample(
+            self.buffer, DATA_CONFIG.sample_size)
+        states, mcts_probs, mcts_vals = map(
+            lambda x: torch.from_numpy(np.array(x)),
+            zip(*selected_data)
+        )
         train_iter = DataLoader(
-            data_set, TRAIN_CONFIG.batch_size, shuffle=True)
+            TensorDataset(states, mcts_probs, mcts_vals),
+            DATA_CONFIG.batch_size, shuffle=True
+        )
         return train_iter

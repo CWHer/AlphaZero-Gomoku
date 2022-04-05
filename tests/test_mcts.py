@@ -1,8 +1,18 @@
+from multiprocessing import Process
+
 from icecream import ic
 
+from agent.batch_inference import SharedData, batchInference
 from agent.mcts import MCTSPlayer
 from agent.network import PolicyValueNet
 from env.simulator import Simulator
+
+
+def func(env, index, shared_data):
+    player = MCTSPlayer(index, shared_data)
+    action, mcts_prob = player.getAction(env, is_train=True)
+    ic(env.Idx2Coord(action))
+    shared_data.finish()
 
 
 env = Simulator()
@@ -18,8 +28,16 @@ ic(len(env.getEmptyIndices()))
 env.display()
 ic(env.isEnd())
 # env.backtrack()
+
 net = PolicyValueNet()
-net.setDevice("cpu")
-player = MCTSPlayer(net)
-action, mcts_prob = player.getAction(env, is_train=True)
-ic(env.Idx2Coord(action))
+net.setDevice()
+
+with SharedData(n_proc=1) as shared_data:
+    shared_data.reset()
+    proc = Process(target=func, args=(env, 0, shared_data))
+    proc.start()
+
+    batchInference(shared_data, net)
+    proc.join()
+
+print("Done")

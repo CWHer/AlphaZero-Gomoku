@@ -4,14 +4,14 @@ import numpy as np
 import torch
 from agent.batch_inference import SharedData
 from agent.mcts import MCTSPlayer
-from agent.network import PolicyValueNet
 from env.simulator import Simulator
 from utils import printInfo
 
 
 def selfPlay(
     seed: int, index: int,
-        shared_data: SharedData, done_queue: Queue) -> None:
+        shared_data: SharedData,
+        done_queue: Queue) -> None:
     """[summary]
     Returns:
         (states, mcts_probs, mcts_vals)
@@ -25,7 +25,9 @@ def selfPlay(
 
     episode_len, data_buffer = 0, []
     players = [
-        MCTSPlayer(index, shared_data) for _ in range(2)]
+        MCTSPlayer(index, shared_data)
+        for _ in range(2)
+    ]
 
     while not done:
         # NOTE: data = (states, mcts_probs)
@@ -63,22 +65,25 @@ def selfPlay(
 
 
 def contest(
-    net0: PolicyValueNet, net1: PolicyValueNet,
-        seed: int) -> int:
+    seed: int, index: int,
+        shared_data: SharedData,
+        done_queue: Queue) -> None:
     """[summary]
     contest between net0 and net1
 
     Returns:
         winner
     """
-    # TODO:
     # fix seeds (torch, np, random)
     torch.manual_seed(seed)
     np.random.seed(seed)
 
     env = Simulator()
     done, winner = env.isEnd()
-    players = [MCTSPlayer(net0), MCTSPlayer(net1)]
+    players = [
+        MCTSPlayer(index, shared_data)
+        for _ in range(2)
+    ]
 
     while not done:
         action, _ = \
@@ -93,5 +98,6 @@ def contest(
         # check game status
         done, winner = env.isEnd()
 
+    shared_data.finish()
     # printInfo(f"Game Over. Winner: {winner}")
-    return winner
+    done_queue.put(winner)

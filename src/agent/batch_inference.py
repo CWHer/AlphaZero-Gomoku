@@ -1,6 +1,6 @@
 from multiprocessing import Condition, Value
 from multiprocessing.shared_memory import SharedMemory
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 from config import ENV_CONFIG, NETWORK_CONFIG
@@ -130,3 +130,25 @@ def batchInference(
 
         shared_data.notify()
         # players get results
+
+
+def contestInference(
+        shared_data: SharedData,
+        net: Tuple, n_search: Tuple):
+    """[summary]
+    NOTE: all MCTS player must have the same n_search
+    """
+    index = 0
+    while not shared_data.isDone():
+        for _ in range(n_search[index]):
+            # players put features
+            shared_data.wait()
+
+            # batch inference
+            shared_data.probs[...], shared_data.values[...] = \
+                net[index].predict(shared_data.features)
+
+            shared_data.notify()
+            # players get results
+
+        index ^= 1

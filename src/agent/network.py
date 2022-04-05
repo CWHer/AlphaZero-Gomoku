@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from config import ENV_CONFIG, NETWORK_CONFIG, TRAIN_CONFIG
+from config import ENV_CONFIG, NETWORK_CONFIG
 from torch.cuda.amp import GradScaler, autocast
 from utils import printError, printInfo
 
@@ -95,17 +95,25 @@ class PolicyValueNet():
             printInfo(f"load optimizer {optimizer_path}")
             self.optimizer.load_state_dict(torch.load(optimizer_path))
 
-    def predict(self, features: np.ndarray) -> Tuple[np.ndarray, float]:
+    def predict(self, features: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         self.net.eval()
 
-        features = torch.from_numpy(
-            np.expand_dims(features, 0)).to(self.device)
+        batch_inference = True
+        if features.ndim < 4:
+            batch_inference = False
+            features = np.expand_dims(features, 0)
+
+        features = torch.from_numpy(features).to(self.device)
         # with autocast():
         with torch.no_grad():
             logits, value = self.net(features)
             probs = F.softmax(logits, dim=-1).cpu().numpy()
+            value = value.squeeze(dim=-1).cpu().numpy()
 
-        return (probs.squeeze(axis=0), value.item())
+        if not batch_inference:
+            probs, value = map(
+                lambda x: x.squeeze(axis=0), [probs, value])
+        return probs, value
 
     def trainStep(self, data_batch: List[torch.Tensor]) -> Tuple[float, float]:
         """[summary]

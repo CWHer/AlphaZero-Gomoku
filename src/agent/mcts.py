@@ -7,8 +7,8 @@ from env.simulator import Simulator
 from tqdm import tqdm
 from utils import plotLine, timeLog
 
+from .batch_inference import SharedData
 from .mcts_utils import TreeNode
-from .network import PolicyValueNet
 from .network_utils import ObsEncoder
 
 
@@ -18,8 +18,10 @@ class MCTS():
     """
 
     def __init__(
-            self, net: PolicyValueNet) -> None:
-        self.net = net
+        self, index: int,
+            shared_data: SharedData) -> None:
+        self.index = index
+        self.shared_data = shared_data
         self.root = TreeNode(None, None, 1.0)
 
     def step(self, action: int) -> None:
@@ -47,7 +49,10 @@ class MCTS():
         # non-terminal
         if not done:
             features = ObsEncoder.encode(env)
-            policy, value = self.net.predict(features)
+            self.shared_data.put(self.index, features)
+            # NOTE: batch inference (on another process)
+            policy, value = self.shared_data.get(self.index)
+
             valid_actions = env.getEmptyIndices()
             actions_probs = [
                 (action, policy[action])
@@ -57,6 +62,9 @@ class MCTS():
 
             # if node.isRoot:
             #     env.plotActionProb(actions_probs)
+        else:
+            # NOTE: forced alignment
+            self.shared_data.put(self.index, None)
 
         # >>>>> backpropagation
         while not node is None:
@@ -91,8 +99,9 @@ class MCTS():
 
 class MCTSPlayer():
     def __init__(
-            self, net: PolicyValueNet) -> None:
-        self.mcts = MCTS(net)
+        self, index,
+            shared_data: SharedData) -> None:
+        self.mcts = MCTS(index, shared_data)
 
     def step(self, action: int) -> None:
         self.mcts.step(action)

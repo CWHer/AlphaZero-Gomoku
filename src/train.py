@@ -1,14 +1,15 @@
 import copy
 import random
 from functools import partial
+from multiprocessing import Process, Queue
+from typing import List
 
 from tensorboardX import SummaryWriter
-from torch import multiprocessing
-from torch.multiprocessing import Pool
 from tqdm import tqdm
 
+from agent.batch_inference import SharedData, batchInference, contestInference
 from agent.network import PolicyValueNet
-from config import DATA_CONFIG, TRAIN_CONFIG
+from config import DATA_CONFIG, MCTS_CONFIG, TRAIN_CONFIG
 from train_utils.game import contest, selfPlay
 from train_utils.replay_buffer import ReplayBuffer
 from utils import printInfo, printWarn, timeLog
@@ -32,46 +33,83 @@ class Trainer():
         printInfo("collect data")
 
         n_game = TRAIN_CONFIG.n_game
+        n_process = TRAIN_CONFIG.n_process
+        with SharedData(n_process) as shared_data:
+            done_queue = Queue()
+            # each epoch contrains n_process
+            for _ in range(n_game // n_process):
+                shared_data.reset()
+                processes: List[Process] = []
 
-        games = [
-            (self.net, self.seed())
-            for _ in range(n_game)
-        ]
-        with tqdm(total=n_game) as pbar:
-            with Pool(TRAIN_CONFIG.n_process) as pool:
-                results = pool.starmap(selfPlay, games)
-                for result in results:
-                    self.buffer.add(*result)
-                    pbar.update()
+                for i in range(n_process):
+                    processes.append(
+                        Process(target=selfPlay,
+                                args=(self.seed(), i,
+                                      shared_data, done_queue)))
+                    processes[-1].start()
+                # batch inference
+                batchInference(shared_data, self.net)
+
+                for _ in range(n_process):
+                    self.buffer.add(*done_queue.get())
+                for proc in processes:
+                    proc.join()
 
     @timeLog
     def __evaluate(self):
         printInfo("evaluate model")
 
         logs = {0: 0, 1: 0, -1: 0}
-        n_contest = TRAIN_CONFIG.n_contest
-        with tqdm(total=n_contest) as pbar:
-            games = [
-                (self.net, self.best_net, self.seed())
-                for _ in range(n_contest // 2)
-            ]
-            with Pool(TRAIN_CONFIG.n_process) as pool:
-                results = pool.starmap(contest, games)
-                for winner in results:
-                    logs[winner] += 1
-                    pbar.update()
+        n_contest = TRAIN_CONFIG.n_contest // 2
+        n_process = TRAIN_CONFIG.n_process
 
-            games = [
-                (self.best_net, self.net, self.seed())
-                for _ in range(n_contest // 2)
-            ]
-            with Pool(TRAIN_CONFIG.n_process) as pool:
-                results = pool.starmap(contest, games)
-                for winner in results:
+        with SharedData(n_process) as shared_data:
+            done_queue = Queue()
+            # each epoch contrains n_process
+            for _ in range(n_contest // n_process):
+                shared_data.reset()
+                processes: List[Process] = []
+
+                for i in range(n_process):
+                    processes.append(
+                        Process(target=contest,
+                                args=(self.seed(), i,
+                                      shared_data, done_queue)))
+                    processes[-1].start()
+                # alternate inferene
+                contestInference(
+                    shared_data, (self.net, self.best_net),
+                    (MCTS_CONFIG.n_search, ) * 2)
+
+                for _ in range(n_process):
+                    winner = done_queue.get()
+                    logs[winner] += 1
+                for proc in processes:
+                    proc.join()
+
+            # swap order
+            for _ in range(n_contest // n_process):
+                shared_data.reset()
+                processes: List[Process] = []
+
+                for i in range(n_process):
+                    processes.append(
+                        Process(target=contest,
+                                args=(self.seed(), i,
+                                      shared_data, done_queue)))
+                    processes[-1].start()
+                # alternate inferene
+                contestInference(
+                    shared_data, (self.best_net, self.net),
+                    (MCTS_CONFIG.n_search, ) * 2)
+
+                for _ in range(n_process):
+                    winner = done_queue.get()
                     if winner != -1:
                         winner ^= 1
                     logs[winner] += 1
-                    pbar.update()
+                for proc in processes:
+                    proc.join()
 
         printInfo(
             f"win: {logs[0]}, lose: {logs[1]}, draw: {logs[-1]}")
@@ -136,7 +174,5 @@ class Trainer():
 
 
 if __name__ == "__main__":
-    multiprocessing.set_start_method("spawn")
-
     trainer = Trainer(loc="cuda:0")
     trainer.run()

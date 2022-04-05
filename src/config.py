@@ -7,7 +7,7 @@ from datetime import datetime
 ENV_CONFIG = {
     # board
     "win_cnt": 5,
-    "board_size": 15,
+    "board_size": 10,
 
     # display
     "output_size": (5, 2),
@@ -17,11 +17,11 @@ NETWORK_CONFIG = {
     "checkpoint_dir": "checkpoint",
 
     # features
-    "n_periods": 2,
+    "n_periods": 4,
 
     # network architecture
-    "n_res": 4,
-    "n_channels": 256,
+    "n_res": 12,
+    "n_channels": 128,
 
     # loss
     "value_weight": 1,
@@ -33,23 +33,23 @@ NETWORK_CONFIG = {
 
 MCTS_CONFIG = {
     "c_puct": 5,
-    "n_search": 1600,
+    "n_search": 800,
 
     # action selection
     "inv_temp": 1 / 1,
     "dirichlet_alpha": 0.3,
-    "dirichlet_eps": 0.1,
+    "dirichlet_eps": 0.25,
 }
 
 DATA_CONFIG = {
     "dataset_dir": "dataset",
-    "save_freq": 100,
+    "save_freq": 10000,
     "augment_data": True,
-    "replay_size": 20000,
+    "replay_size": 500000,
 
     # sample
-    "train_threshold": 2000,
-    "sample_size": 512 * 2,
+    "train_threshold": 12000,
+    "sample_size": 512 * 20,
     "batch_size": 512,
 }
 
@@ -57,17 +57,20 @@ TRAIN_CONFIG = {
     "parameters_dir": "parameters",
     "log_dir": "logs/",
 
-    "epochs": 10000,
+    "epochs": 100000,
     # multiprocessing
-    "n_process": 2,
+    # NOTE: ensure that
+    #   1. n_game % n_process == 0
+    #   2. n_contest // 2 % n_process == 0
+    "n_process": 20,
 
     # self play
-    "n_game": 2,
+    "n_game": 20,
 
     # evaluate
-    "eval_freq": 10,
+    "eval_freq": 50,
     "update_thr": 0.55,
-    "n_contest": 20,
+    "n_contest": 40,
 }
 
 

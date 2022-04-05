@@ -71,7 +71,7 @@ class MCTS():
         # for _ in tqdm(range(MCTS_CONFIG.n_search)):
         for _ in range(MCTS_CONFIG.n_search):
             self.__search(copy.deepcopy(env))
-        # self.root.display()
+        # self.root.display(env)
 
         actions, vis_cnt = list(
             zip(*[(child.action, child.getVisCount())
@@ -120,7 +120,8 @@ class MCTSPlayer():
             # plotLine(probs.tolist(), "original probs", "probs")
             # plotLine(noisy_probs, "noisy probs", "noisy")
         else:
-            action = actions[np.argmax(probs)]
+            # action = actions[np.argmax(probs)]
+            action = np.random.choice(actions, p=probs)
 
         # mcts probs
         mcts_probs = np.zeros(ENV_CONFIG.board_size ** 2)

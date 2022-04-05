@@ -1,8 +1,84 @@
 # AlphaZero-Gomoku
 
-Play gomoku with AlphaZero :cheese:
+Play gomoku with AlphaZero :hugs:
 
-详细说明见`DOC.md`
+
+
+## 说明文档
+
+### Features
+
+- [x] Residual Network
+
+- [x] Monte Carlo Tree Search (with network)
+
+- [ ] Monte Carlo Tree Search (without network)
+
+- [x] Set proper rewards
+
+- [x] Multiprocessing
+
+- [x] TensorBoard 
+
+- [x] Single player mode
+
+- [x] Contest mode
+
+- [x] Mixed precision
+
+- [x] Add comments
+
+- [x] Batch inference
+
+  <img src="assets/batch_inference.png" style="zoom: 50%;" />
+
+- [ ] ...
+
+
+
+### Code Structure
+
+大致如下图所示
+
+
+![](assets/code-structure.png)
+
+![](assets/alpha_go_zero_cheat_sheet.png)
+
+
+
+### 文件说明
+
+| agent              |                            |
+| ------------------ | -------------------------- |
+| mcts.py            | MCTS (with network)        |
+| mcts_utils.py      | PUCT, TreeNode             |
+| network.py         | PolicyValueNet             |
+| network_utils.py   | feature encoder            |
+| batch_inference.py | SharedData, batchInference |
+
+| env          |        |
+| ------------ | ------ |
+| simulator.py | Gomoku |
+
+| train_utils      |                    |
+| ---------------- | ------------------ |
+| game.py          | self play, contest |
+| replay_buffer.py | store date         |
+
+| File            | Description       |
+| --------------- | ----------------- |
+| train.py (main) | training pipeline |
+| utils.py        | utility functions |
+| config.py       | hyper-parameters  |
+
+
+
+### Training Pipeline
+
+1. Self Play生成数据，保存在replay buffer
+2. 数据量足够后开始训练model
+3. 几轮训练后与best net对局，胜率>55%则更新模型
 
 
 

@@ -12,6 +12,7 @@ parameters/
 
 # tensorboardX
 logs/
+train_log
 
 default.png
 test.py

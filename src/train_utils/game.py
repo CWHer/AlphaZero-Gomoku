@@ -1,15 +1,17 @@
-from typing import List, Tuple
+from multiprocessing import Queue
 
 import numpy as np
 import torch
+from agent.batch_inference import SharedData
 from agent.mcts import MCTSPlayer
 from agent.network import PolicyValueNet
 from env.simulator import Simulator
 from utils import printInfo
 
 
-def selfPlay(net: PolicyValueNet, seed: int) -> \
-        Tuple[List[np.ndarray], List[np.ndarray], np.ndarray]:
+def selfPlay(
+    seed: int, index: int,
+        shared_data: SharedData, done_queue: Queue) -> None:
     """[summary]
     Returns:
         (states, mcts_probs, mcts_vals)
@@ -22,7 +24,8 @@ def selfPlay(net: PolicyValueNet, seed: int) -> \
     done, winner = env.isEnd()
 
     episode_len, data_buffer = 0, []
-    players = [MCTSPlayer(net) for _ in range(2)]
+    players = [
+        MCTSPlayer(index, shared_data) for _ in range(2)]
 
     while not done:
         # NOTE: data = (states, mcts_probs)
@@ -40,19 +43,23 @@ def selfPlay(net: PolicyValueNet, seed: int) -> \
         # check game status
         done, winner = env.isEnd()
 
+    shared_data.finish()
     states, mcts_probs = zip(*data_buffer)
 
     if winner == -1:
         printInfo("Game Over. Draw")
-        return states, mcts_probs, \
-            np.zeros(episode_len, dtype=np.float32)
+        done_queue.put(
+            (states, mcts_probs,
+             np.zeros(episode_len, dtype=np.float32)))
+        return
 
     # printInfo(f"Game Over. Player {winner} win!")
     mcts_vals = np.array(
         [1 if (i & 1) == winner else -1
          for i in range(episode_len)], dtype=np.float32
     )
-    return states, mcts_probs, mcts_vals
+    done_queue.put(
+        (states, mcts_probs, mcts_vals))
 
 
 def contest(
@@ -64,6 +71,7 @@ def contest(
     Returns:
         winner
     """
+    # TODO:
     # fix seeds (torch, np, random)
     torch.manual_seed(seed)
     np.random.seed(seed)

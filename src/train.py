@@ -114,7 +114,7 @@ class Trainer():
         printInfo(
             f"win: {logs[0]}, lose: {logs[1]}, draw: {logs[-1]}")
 
-        return (logs[0] + 0.5 * logs[-1]) / n_contest
+        return (logs[0] + 0.5 * logs[-1]) * 0.5 / n_contest
 
     def __train(self, epoch):
         printInfo("train model")

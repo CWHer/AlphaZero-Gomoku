@@ -75,12 +75,14 @@ class SharedData():
         if not features is None:
             self.features[k, ...] = features
 
-        with self.n_waiting.get_lock():
-            self.n_waiting.value += 1
-        with self.inference_cv:
-            self.inference_cv.notify()
-
         with self.player_cv:
+            with self.n_waiting.get_lock():
+                self.n_waiting.value += 1
+            with self.inference_cv:
+                self.inference_cv.notify()
+
+            # NOTE: this prevents the
+            #   waiting++ --> notify_all --> wait deadlock
             self.player_cv.wait()
 
     def get(self, k):

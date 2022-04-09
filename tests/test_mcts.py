@@ -3,7 +3,7 @@ from multiprocessing import Process
 from icecream import ic
 
 from agent.batch_inference import SharedData, batchInference
-from agent.mcts import MCTSPlayer
+from agent.net_mcts import MCTSPlayer
 from agent.network import PolicyValueNet
 from env.simulator import Simulator
 

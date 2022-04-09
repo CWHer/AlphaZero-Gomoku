@@ -8,7 +8,7 @@ from tqdm import tqdm
 from utils import plotLine, timeLog
 
 from .batch_inference import SharedData
-from .mcts_utils import TreeNode
+from .net_mcts_utils import TreeNode
 from .network_utils import ObsEncoder
 
 

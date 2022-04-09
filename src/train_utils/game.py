@@ -3,7 +3,7 @@ from multiprocessing import Queue
 import numpy as np
 import torch
 from agent.batch_inference import SharedData
-from agent.mcts import MCTSPlayer
+from agent.net_mcts import MCTSPlayer
 from env.simulator import Simulator
 from utils import printInfo
 
@@ -90,7 +90,7 @@ def contest(
             players[env.turn].getAction(env)
 
         env.step(action)
-        # env.display()
+        env.display()
         # update MCTS root node
         for i in range(2):
             players[i].step(action)

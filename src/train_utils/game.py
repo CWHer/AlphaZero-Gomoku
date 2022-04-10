@@ -1,4 +1,6 @@
+import random
 from multiprocessing import Queue
+from typing import List
 
 import numpy as np
 import torch
@@ -19,6 +21,7 @@ def selfPlay(
     # fix seeds (torch, np, random)
     torch.manual_seed(seed)
     np.random.seed(seed)
+    random.seed(seed)
 
     env = Simulator()
     done, winner = env.isEnd()
@@ -66,10 +69,11 @@ def selfPlay(
 
 def contest(
     seed: int, index: int,
-        shared_data: SharedData,
-        done_queue: Queue) -> None:
+        shared_data: SharedData, done_queue: Queue,
+        players: List = [None, None]) -> None:
     """[summary]
-    contest between net0 and net1
+    contest between player0 and player1
+    NOTE: modify players parameter to use pure MCTS
 
     Returns:
         winner
@@ -77,13 +81,13 @@ def contest(
     # fix seeds (torch, np, random)
     torch.manual_seed(seed)
     np.random.seed(seed)
+    random.seed(seed)
 
     env = Simulator()
     done, winner = env.isEnd()
-    players = [
-        MCTSPlayer(index, shared_data)
-        for _ in range(2)
-    ]
+    for i in range(2):
+        if players[i] is None:
+            players[i] = MCTSPlayer(index, shared_data)
 
     while not done:
         action, _ = \

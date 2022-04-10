@@ -100,7 +100,7 @@ class MCTSPlayer():
         self.mcts.step(action)
 
     # @timeLog
-    def getAction(self, env: Simulator) -> int:
+    def getAction(self, env: Simulator) -> Tuple[int, None]:
         """[summary]
         Returns: action
         """
@@ -110,4 +110,6 @@ class MCTSPlayer():
         # choose action
         # action = np.random.choice(actions, p=probs)
         action = actions[np.argmax(probs)]
-        return action
+
+        # align with net MCTS returns
+        return action, None

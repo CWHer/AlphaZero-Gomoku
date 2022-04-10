@@ -50,9 +50,10 @@ class MCTS():
             NOTE: this would change env
             """
             done, winner = env.isEnd()
+            valid_actions = env.getEmptyIndices()
+            random.shuffle(valid_actions)
             while not done:
-                valid_actions = env.getEmptyIndices()
-                env.step(random.choice(valid_actions))
+                env.step(valid_actions.pop())
                 done, winner = env.isEnd()
             return winner
 

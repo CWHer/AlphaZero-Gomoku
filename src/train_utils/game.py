@@ -94,7 +94,7 @@ def contest(
             players[env.turn].getAction(env)
 
         env.step(action)
-        env.display()
+        # env.display()
         # update MCTS root node
         for i in range(2):
             players[i].step(action)

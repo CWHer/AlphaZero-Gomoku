@@ -12,11 +12,9 @@ Play gomoku with AlphaZero :hugs:
 
 - [x] Monte Carlo Tree Search (with network)
 
-- [ ] Monte Carlo Tree Search (without network)
+- [x] Monte Carlo Tree Search (without network)
 
 - [x] Set proper rewards
-
-- [x] Multiprocessing
 
 - [x] TensorBoard 
 
@@ -27,6 +25,8 @@ Play gomoku with AlphaZero :hugs:
 - [x] Mixed precision
 
 - [x] Add comments
+
+- [x] Multiprocessing
 
 - [x] Batch inference
 
@@ -101,4 +101,5 @@ Play gomoku with AlphaZero :hugs:
 1. [_AlphaZero_Gomoku_](https://github.com/junxiaosong/AlphaZero_Gomoku)
 2. [_AlphaZero-Chess_](https://github.com/DylanSnyder31/AlphaZero-Chess)
 3. [_alpha-zero-gomoku_](https://github.com/hijkzzz/alpha-zero-gomoku)
+4. [AlphaZero_Gomoku_MPI](https://github.com/initial-h/AlphaZero_Gomoku_MPI)
 

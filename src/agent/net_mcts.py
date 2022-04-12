@@ -129,8 +129,8 @@ class MCTSPlayer():
             # plotLine(probs.tolist(), "original probs", "probs")
             # plotLine(noisy_probs, "noisy probs", "noisy")
         else:
-            # action = actions[np.argmax(probs)]
-            action = np.random.choice(actions, p=probs)
+            action = actions[np.argmax(probs)]
+            # action = np.random.choice(actions, p=probs)
 
         # mcts probs
         mcts_probs = np.zeros(ENV_CONFIG.board_size ** 2)

@@ -8,6 +8,7 @@ from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
 from agent.batch_inference import SharedData, batchInference, contestInference
+from agent.mcts import MCTSPlayer
 from agent.network import PolicyValueNet
 from config import DATA_CONFIG, MCTS_CONFIG, TRAIN_CONFIG
 from train_utils.game import contest, selfPlay
@@ -21,8 +22,11 @@ class Trainer():
         self.net.setDevice(loc)
         self.buffer = ReplayBuffer()
 
-        self.n_best = 0
-        self.best_net = copy.deepcopy(self.net)
+        # self.n_best = 0
+        # self.best_net = copy.deepcopy(self.net)
+
+        self.best_rate = 0
+        self.n_search = MCTS_CONFIG.n_search
 
         self.seed = partial(
             random.randint, a=0, b=20000905)
@@ -55,8 +59,75 @@ class Trainer():
                 for proc in processes:
                     proc.join()
 
+    # @timeLog
+    # def __evaluate(self):
+    #     """[summary]
+    #     current network vs best network
+    #     """
+    #     printInfo("evaluate model")
+
+    #     logs = {0: 0, 1: 0, -1: 0}
+    #     n_contest = TRAIN_CONFIG.n_contest // 2
+    #     n_process = TRAIN_CONFIG.n_process
+
+    #     with SharedData(n_process) as shared_data:
+    #         done_queue = Queue()
+    #         # each epoch contrains n_process
+    #         for _ in range(n_contest // n_process):
+    #             shared_data.reset()
+    #             processes: List[Process] = []
+
+    #             for i in range(n_process):
+    #                 processes.append(
+    #                     Process(target=contest,
+    #                             args=(self.seed(), i,
+    #                                   shared_data, done_queue)))
+    #                 processes[-1].start()
+    #             # alternate inferene
+    #             contestInference(
+    #                 shared_data, (self.net, self.best_net),
+    #                 (MCTS_CONFIG.n_search, ) * 2)
+
+    #             for _ in range(n_process):
+    #                 winner = done_queue.get()
+    #                 logs[winner] += 1
+    #             for proc in processes:
+    #                 proc.join()
+
+    #         # swap order
+    #         for _ in range(n_contest // n_process):
+    #             shared_data.reset()
+    #             processes: List[Process] = []
+
+    #             for i in range(n_process):
+    #                 processes.append(
+    #                     Process(target=contest,
+    #                             args=(self.seed(), i,
+    #                                   shared_data, done_queue)))
+    #                 processes[-1].start()
+    #             # alternate inferene
+    #             contestInference(
+    #                 shared_data, (self.best_net, self.net),
+    #                 (MCTS_CONFIG.n_search, ) * 2)
+
+    #             for _ in range(n_process):
+    #                 winner = done_queue.get()
+    #                 if winner != -1:
+    #                     winner ^= 1
+    #                 logs[winner] += 1
+    #             for proc in processes:
+    #                 proc.join()
+
+    #     printInfo(
+    #         f"win: {logs[0]}, lose: {logs[1]}, draw: {logs[-1]}")
+
+    #     return (logs[0] + 0.5 * logs[-1]) * 0.5 / n_contest
+
     @timeLog
-    def __evaluate(self):
+    def __evaluate(self, n_search):
+        """[summary]
+        current network vs pure MCTS
+        """
         printInfo("evaluate model")
 
         logs = {0: 0, 1: 0, -1: 0}
@@ -70,16 +141,17 @@ class Trainer():
                 shared_data.reset()
                 processes: List[Process] = []
 
+                players = [None, MCTSPlayer(n_search)]
                 for i in range(n_process):
                     processes.append(
                         Process(target=contest,
                                 args=(self.seed(), i,
-                                      shared_data, done_queue)))
+                                      shared_data, done_queue, players)))
                     processes[-1].start()
                 # alternate inferene
                 contestInference(
-                    shared_data, (self.net, self.best_net),
-                    (MCTS_CONFIG.n_search, ) * 2)
+                    shared_data, (self.net, None),
+                    (MCTS_CONFIG.n_search, 0))
 
                 for _ in range(n_process):
                     winner = done_queue.get()
@@ -92,16 +164,17 @@ class Trainer():
                 shared_data.reset()
                 processes: List[Process] = []
 
+                players = [MCTSPlayer(n_search), None]
                 for i in range(n_process):
                     processes.append(
                         Process(target=contest,
                                 args=(self.seed(), i,
-                                      shared_data, done_queue)))
+                                      shared_data, done_queue, players)))
                     processes[-1].start()
                 # alternate inferene
                 contestInference(
-                    shared_data, (self.best_net, self.net),
-                    (MCTS_CONFIG.n_search, ) * 2)
+                    shared_data, (0, self.net),
+                    (0, MCTS_CONFIG.n_search))
 
                 for _ in range(n_process):
                     winner = done_queue.get()
@@ -161,14 +234,31 @@ class Trainer():
                 self.__train(epoch=i)
 
             # >>>>> evaluate model
+            # if (i + 1) % TRAIN_CONFIG.eval_freq == 0:
+            #     if self.__evaluate() >= \
+            #             TRAIN_CONFIG.update_thr:
+            #         # update best model
+            #         self.n_best += 1
+            #         self.best_net = copy.deepcopy(self.net)
+            #         self.best_net.save(version=self.n_best)
+            #         printInfo(f"best model {self.n_best}")
+            #     else:
+            #         printWarn(True, "reject new model")
+
             if (i + 1) % TRAIN_CONFIG.eval_freq == 0:
-                if self.__evaluate() >= \
-                        TRAIN_CONFIG.update_thr:
-                    # update best model
-                    self.n_best += 1
-                    self.best_net = copy.deepcopy(self.net)
-                    self.best_net.save(version=self.n_best)
-                    printInfo(f"best model {self.n_best}")
+                win_rate = self.__evaluate(self.n_search)
+                self.writer.add_scalar("winning rate", win_rate, i)
+                if win_rate >= self.best_rate:
+                    self.best_rate = win_rate
+                    version = f"{self.n_search}_{win_rate}"
+                    self.net.save(version)
+                    printInfo(version)
+
+                    if self.best_rate >= \
+                            TRAIN_CONFIG.update_thr:
+                        self.best_rate = 0
+                        self.n_search += TRAIN_CONFIG.dn_search
+
                 else:
                     printWarn(True, "reject new model")
 

@@ -42,10 +42,11 @@ class MCTS():
         # >>>>> expansion & simulation
         # NOTE: replace simulation with network prediction, which yields
         #    1. prior_prob for each leaf node
-        #    2. v in [-1, 1] for current node
+        #    2. v in [-1, 1] for current node (from current player's perspective)
         done, winner = env.isEnd()
         # terminal
-        value = 0 if winner == -1 else 1
+        # NOTE: last action is made by opponent
+        value = 0 if winner == -1 else -1
         # non-terminal
         if not done:
             features = ObsEncoder.encode(env)
@@ -67,8 +68,10 @@ class MCTS():
             self.shared_data.put(self.index, None)
 
         # >>>>> backpropagation
+        # NOTE: value is used to evaluate last action,
+        #   which is made by opponent (not current player)
         while not node is None:
-            node.update(value)
+            node.update(-value)
             # NOTE: opponent gets negative reward
             value = -value
             node = node.parent

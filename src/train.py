@@ -37,7 +37,7 @@ class Trainer():
         printInfo("collect data")
 
         n_game = TRAIN_CONFIG.n_game
-        n_process = TRAIN_CONFIG.n_process
+        n_process = min(n_game, TRAIN_CONFIG.n_process)
         with SharedData(n_process) as shared_data:
             done_queue = Queue()
             # each epoch contrains n_process
@@ -132,7 +132,7 @@ class Trainer():
 
         logs = {0: 0, 1: 0, -1: 0}
         n_contest = TRAIN_CONFIG.n_contest // 2
-        n_process = TRAIN_CONFIG.n_process
+        n_process = min(n_contest, TRAIN_CONFIG.n_process)
 
         with SharedData(n_process) as shared_data:
             done_queue = Queue()

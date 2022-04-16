@@ -7,7 +7,7 @@ from datetime import datetime
 ENV_CONFIG = {
     # board
     "win_cnt": 5,
-    "board_size": 8,
+    "board_size": 10,
 
     # display
     "output_size": (5, 2),
@@ -20,7 +20,7 @@ NETWORK_CONFIG = {
     "n_periods": 4,
 
     # network architecture
-    "n_res": 5,
+    "n_res": 10,
     "n_channels": 128,
 
     # loss
@@ -34,7 +34,7 @@ NETWORK_CONFIG = {
 MCTS_CONFIG = {
     "c_uct": 2,
     "c_puct": 5,
-    "n_search": 400,
+    "n_search": 800,
 
     # action selection
     "inv_temp": 1 / 1,
@@ -44,13 +44,13 @@ MCTS_CONFIG = {
 
 DATA_CONFIG = {
     "dataset_dir": "dataset",
-    "save_freq": 100,
+    "save_freq": 200,
     "augment_data": True,
-    "replay_size": 100000,
+    "replay_size": 500000,
 
     # sample
-    "train_threshold": 5200,
-    "sample_size": 512 * 10,
+    "train_threshold": 12000,
+    "sample_size": 512 * 20,
     "batch_size": 512,
 }
 
@@ -60,17 +60,17 @@ TRAIN_CONFIG = {
 
     "epochs": 5000,
     # multiprocessing
-    "n_process": 10,
+    "n_process": 20,
 
     # self play
-    "n_game": 10,
+    "n_game": 20,
 
     # evaluate
     "eval_freq": 20,
-    # "update_thr": 0.55,     # against best net
+    "update_thr": 0.55,     # against best net
     "n_contest": 20,
-    "update_thr": 0.75,      # against pure mcts
-    "dn_search": 1000,
+    # "update_thr": 0.75,      # against pure mcts
+    # "dn_search": 1000,
 }
 
 

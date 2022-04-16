@@ -2,6 +2,10 @@
 
 Play gomoku with AlphaZero :hugs:
 
+4x speed
+
+![](assets/demo.gif)
+
 
 
 ## 说明文档
@@ -77,8 +81,20 @@ Play gomoku with AlphaZero :hugs:
 ### Training Pipeline
 
 1. Self Play生成数据，保存在replay buffer
+
 2. 数据量足够后开始训练model
-3. 几轮训练后与best net对局，胜率>55%则更新模型
+
+3. 一定数量的训练后
+
+   - 与Best net对局，胜率>55%则更新模型
+
+     速度更快，需要使用stochastic action selection
+
+   - 与Pure MCTS对局，胜率>75%则更新模型
+
+     效果更明显，后期效率较低
+
+4. 重复
 
 
 

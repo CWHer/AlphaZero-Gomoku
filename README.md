@@ -1,11 +1,15 @@
 # AlphaZero-Gomoku
 
-Play gomoku with AlphaZero :hugs:
+Play Gomoku with AlphaZero :hugs:
 
-4x speed
+Trained models can be found [here](https://drive.google.com/drive/folders/12hR1CVG6KPSmv3Hrmn748-oSO-SQgwNJ). (40h on 5800x + RTX3080, 800 epochs, 16000 games)
 
-![](assets/demo.gif)
+2x speed
 
+<div align="center">
+    <img style="float: center; width: 48%; min-width: 300px; margin: 2px;" src="./assets/demo.gif">
+    <img style="float: center; width: 48%; min-width: 300px; margin: 2px;" src="./assets/final_demo.gif">
+</div>
 
 
 ## 说明文档
@@ -18,8 +22,6 @@ Play gomoku with AlphaZero :hugs:
 
 - [x] Monte Carlo Tree Search (without network)
 
-- [x] Set proper rewards
-
 - [x] TensorBoard 
 
 - [x] Single player mode
@@ -28,13 +30,11 @@ Play gomoku with AlphaZero :hugs:
 
 - [x] Mixed precision
 
-- [x] Add comments
-
 - [x] Multiprocessing
 
 - [x] Batch inference
 
-  <img src="assets/batch_inference.png" style="zoom: 50%;" />
+  <img src="assets/batch_inference.png" style="width: 300px" />
 
 - [ ] ...
 
@@ -117,5 +117,5 @@ Play gomoku with AlphaZero :hugs:
 1. [_AlphaZero_Gomoku_](https://github.com/junxiaosong/AlphaZero_Gomoku)
 2. [_AlphaZero-Chess_](https://github.com/DylanSnyder31/AlphaZero-Chess)
 3. [_alpha-zero-gomoku_](https://github.com/hijkzzz/alpha-zero-gomoku)
-4. [AlphaZero_Gomoku_MPI](https://github.com/initial-h/AlphaZero_Gomoku_MPI)
+4. [_AlphaZero_Gomoku_MPI_](https://github.com/initial-h/AlphaZero_Gomoku_MPI)
 

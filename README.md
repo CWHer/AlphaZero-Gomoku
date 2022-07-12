@@ -7,8 +7,8 @@ Trained models can be found [here](https://drive.google.com/drive/folders/12hR1C
 2x speed
 
 <div align="center">
-    <img style="float: center; width: 48%; min-width: 300px; margin: 2px;" src="./assets/demo.gif">
-    <img style="float: center; width: 48%; min-width: 300px; margin: 2px;" src="./assets/final_demo.gif">
+    <img style="float: center; width: 100%; min-width: 300px; margin: 2px;" src="./assets/demo.gif">
+    <img style="float: center; width: 100%; min-width: 300px; margin: 2px;" src="./assets/final_demo.gif">
 </div>
 
 

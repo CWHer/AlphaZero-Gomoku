@@ -119,8 +119,8 @@ class SharedData():
     # <<<<<< inference APIs
 
 
-def batchInference(
-        shared_data: SharedData, net: PolicyValueNet):
+def batchInference(shared_data: SharedData,
+                   net: PolicyValueNet):
 
     while not shared_data.isDone():
         # players put features
@@ -134,9 +134,8 @@ def batchInference(
         # players get results
 
 
-def contestInference(
-        shared_data: SharedData,
-        net: Tuple, n_search: Tuple):
+def contestInference(shared_data: SharedData,
+                     net: Tuple, n_search: Tuple):
     """[summary]
     NOTE: all MCTS player must have the same n_search
     """

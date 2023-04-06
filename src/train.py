@@ -4,16 +4,16 @@ from functools import partial
 from multiprocessing import Process, Queue
 from typing import List
 
-from tensorboardX import SummaryWriter
-from tqdm import tqdm
-
+import tqdm
 from agent.batch_inference import SharedData, batchInference, contestInference
 from agent.mcts import MCTSPlayer
 from agent.network import PolicyValueNet
-from config import DATA_CONFIG, MCTS_CONFIG, TRAIN_CONFIG
+from torch.utils.tensorboard import SummaryWriter
 from train_utils.game import contest, selfPlay
 from train_utils.replay_buffer import ReplayBuffer
 from utils import printInfo, printWarn, timeLog
+
+from config import DATA_CONFIG, MCTS_CONFIG, TRAIN_CONFIG
 
 
 class Trainer():
@@ -31,10 +31,11 @@ class Trainer():
         self.seed = partial(
             random.randint, a=0, b=20000905)
         self.writer = SummaryWriter(TRAIN_CONFIG.log_dir)
+        self.global_step = 0
 
     @timeLog
     def __collectData(self):
-        printInfo("collect data")
+        printInfo("Collect data")
 
         n_game = TRAIN_CONFIG.n_game
         n_process = min(n_game, TRAIN_CONFIG.n_process)
@@ -64,7 +65,7 @@ class Trainer():
     #     """[summary]
     #     current network vs best network
     #     """
-    #     printInfo("evaluate model")
+    #     printInfo("Evaluate model")
 
     #     logs = {0: 0, 1: 0, -1: 0}
     #     n_contest = TRAIN_CONFIG.n_contest // 2
@@ -128,7 +129,7 @@ class Trainer():
         """[summary]
         current network vs pure MCTS
         """
-        printInfo("evaluate model")
+        printInfo("Evaluate model")
 
         logs = {0: 0, 1: 0, -1: 0}
         n_contest = TRAIN_CONFIG.n_contest // 2
@@ -136,7 +137,7 @@ class Trainer():
 
         with SharedData(n_process) as shared_data:
             done_queue = Queue()
-            # each epoch contrains n_process
+            # each epoch contains n_process
             for _ in range(n_contest // n_process):
                 shared_data.reset()
                 processes: List[Process] = []
@@ -185,16 +186,18 @@ class Trainer():
                     proc.join()
 
         printInfo(
-            f"win: {logs[0]}, lose: {logs[1]}, draw: {logs[-1]}")
+            f"Win: {logs[0]}, Lose: {logs[1]}, "
+            f"Draw: {logs[-1]}"
+        )
 
         return (logs[0] + 0.5 * logs[-1]) * 0.5 / n_contest
 
     def __train(self, epoch):
-        printInfo("train model")
+        printInfo("Train model")
 
         train_iter = self.buffer.sample()
         n_batch, mean_loss, mean_acc = 0, 0, 0
-        with tqdm(total=len(train_iter)) as pbar:
+        with tqdm.tqdm(total=len(train_iter)) as pbar:
             for data_batch in train_iter:
                 n_batch += 1
                 loss, acc = \
@@ -202,14 +205,16 @@ class Trainer():
                 mean_loss += loss
                 mean_acc += acc
                 pbar.update()
+                self.writer.add_scalar("loss", loss, self.global_step)
+                self.writer.add_scalar("accuracy", acc, self.global_step)
+                self.global_step += 1
 
+        self.writer.flush()
         mean_loss /= n_batch
         mean_acc /= n_batch
-        self.writer.add_scalar("loss", mean_loss, epoch)
-        self.writer.add_scalar("accuracy", mean_acc, epoch)
         printInfo(
-            "loss: {:>.4f}, accuracy: {:>.4f}".format(
-                mean_loss, mean_acc)
+            f"Epoch {epoch}"
+            f"loss: {mean_loss:>.4f}, accuracy: {mean_acc:>.4f}"
         )
 
     def run(self):
@@ -224,7 +229,7 @@ class Trainer():
 
             # >>>>> collect data
             self.__collectData()
-            printInfo(f"buffer size {len(self.buffer)}")
+            printInfo(f"Buffer size {len(self.buffer)}")
             # save data
             if (i + 1) % DATA_CONFIG.save_freq == 0:
                 self.buffer.save(version=f"epoch{i}")
@@ -260,7 +265,7 @@ class Trainer():
                         self.n_search += TRAIN_CONFIG.dn_search
 
                 else:
-                    printWarn(True, "reject new model")
+                    printWarn(True, "Reject new model")
 
 
 if __name__ == "__main__":

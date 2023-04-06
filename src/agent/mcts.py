@@ -68,7 +68,8 @@ class MCTS():
             value = -value
             node = node.parent
 
-    def search(self, env: GobangEnv) -> Tuple[List, np.ndarray]:
+    def search(self, env: GobangEnv) \
+            -> Tuple[List, np.ndarray]:
         for _ in tqdm.trange(self.n_search, disable=True):
             self._search(copy.deepcopy(env))
         # self.root.display(env)
@@ -90,8 +91,9 @@ class MCTS():
 
 
 class MCTSPlayer():
-    def __init__(
-            self, n_search=MCTS_CONFIG.n_search) -> None:
+    def __init__(self,
+                 n_search=MCTS_CONFIG.n_search
+                 ) -> None:
         self.mcts = MCTS(n_search)
 
     def step(self, action: int) -> None:

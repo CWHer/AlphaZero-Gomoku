@@ -98,18 +98,21 @@ class MCTS():
 
 
 class MCTSPlayer():
-    def __init__(
-        self, index,
-            shared_data: SharedData) -> None:
+    def __init__(self,
+                 index,
+                 shared_data: SharedData
+                 ) -> None:
         self.mcts = MCTS(index, shared_data)
 
     def step(self, action: int) -> None:
         self.mcts.step(action)
 
     # @timeLog
-    def getAction(
-        self, env: GobangEnv, is_train=False) -> \
-            Tuple[int, Tuple[np.ndarray, np.ndarray]]:
+    def getAction(self,
+                  env: GobangEnv,
+                  is_train=False
+                  ) \
+            -> Tuple[int, Tuple[np.ndarray, np.ndarray]]:
         """[summary]
         Returns:
             (action, data), where data = (state, mcts_probs)

@@ -4,9 +4,10 @@ from collections import deque
 
 import numpy as np
 import torch
-from config import DATA_CONFIG, ENV_CONFIG
 from torch.utils.data import DataLoader, TensorDataset
 from utils import plotHeatMap, plotSparseMatrix, printInfo
+
+from config import DATA_CONFIG, ENV_CONFIG
 
 
 class ReplayBuffer():

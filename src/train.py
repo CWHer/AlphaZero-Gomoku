@@ -213,7 +213,7 @@ class Trainer():
         mean_loss /= n_batch
         mean_acc /= n_batch
         printInfo(
-            f"Epoch {epoch}"
+            f"Epoch {epoch} "
             f"loss: {mean_loss:>.4f}, accuracy: {mean_acc:>.4f}"
         )
 

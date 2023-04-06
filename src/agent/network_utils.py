@@ -2,7 +2,6 @@ import copy
 
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
 from env.gobang_env import GobangEnv
 
 from config import ENV_CONFIG, NETWORK_CONFIG
@@ -54,18 +53,34 @@ def conv3x3(in_channels, out_channels):
     )
 
 
-class ResBlock(nn.Module):
-    def __init__(self, n_channels):
+class ResidualBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
         super().__init__()
 
-        self.net = nn.Sequential(
-            conv3x3(n_channels, n_channels),
-            nn.BatchNorm2d(n_channels),
-            nn.ReLU(),
-            conv3x3(n_channels, n_channels),
-            nn.BatchNorm2d(n_channels)
-        )
+        self.conv1 = conv3x3(in_channels, out_channels)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU()
+        self.conv2 = conv3x3(out_channels, out_channels)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+
+        self.downsample = False
+        if in_channels != out_channels:
+            self.downsample = True
+            self.downsample_conv = conv3x3(in_channels, out_channels)
+            self.downsample_bn = nn.BatchNorm2d(out_channels)
 
     def forward(self, x):
-        y = self.net(x)
-        return F.relu(x + y)
+        residual = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+
+        if self.downsample:
+            residual = self.downsample_conv(residual)
+            residual = self.downsample_bn(residual)
+
+        out += residual
+        out = self.relu(out)
+        return out

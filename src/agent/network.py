@@ -5,14 +5,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from agent.network_utils import ResBlock, conv3x3
+from agent.network_utils import ResidualBlock, conv3x3
 from torch.cuda.amp import GradScaler, autocast
 from utils import printError, printInfo
 
 from config import ENV_CONFIG, NETWORK_CONFIG
 
 
-class Network(nn.Module):
+class AZNetwork(nn.Module):
     """[summary]
     toy AlphaZero network
     """
@@ -25,12 +25,10 @@ class Network(nn.Module):
         n_actions = ENV_CONFIG.board_size ** 2
 
         # common layers
-        self.common_net = nn.Sequential(
-            conv3x3(in_channels, n_channels),
-            nn.BatchNorm2d(n_channels), nn.ReLU(),
-            *[ResBlock(n_channels)
-              for _ in range(NETWORK_CONFIG.n_res)]
-        )
+        res_list = [ResidualBlock(in_channels, n_channels)] + \
+            [ResidualBlock(n_channels, n_channels)
+             for _ in range(NETWORK_CONFIG.n_res - 1)]
+        self.common_net = nn.Sequential(*res_list)
 
         # policy head
         self.policy_head = nn.Sequential(
@@ -58,7 +56,7 @@ class Network(nn.Module):
 class PolicyValueNet():
     def __init__(self) -> None:
         self.device = torch.device("cpu")
-        self.net = Network().to(self.device)
+        self.net = AZNetwork().to(self.device)
 
         self.optimizer = optim.Adam(
             self.net.parameters(),

@@ -3,10 +3,10 @@ from __future__ import annotations
 import math
 from typing import List, Optional, Tuple
 
-from config import MCTS_CONFIG
-from env.simulator import Simulator
 from icecream import ic
 from utils import printError, printInfo
+
+from config import MCTS_CONFIG
 
 
 class PUCT():
@@ -109,15 +109,14 @@ class TreeNode():
         printError(True, ic.format("fail to find child!"))
         ic.configureOutput(includeContext=False)
 
-    def display(self, env: Simulator):
+    def display(self):
         """[summary]
         DEBUG function
         """
         Np = self.getVisCount()
         msg = "Action: {} with N: {:>4}, Q: {:>+.4f}, PUCT: {:>+.4f}"
         for child in self.children:
-            printInfo(msg.format(
-                str(env.Idx2Coord(child.action)).rjust(6),
-                child.getVisCount(), child.puct.Q,
-                child.PUCT(Np))
+            printInfo(
+                msg.format(child.action, child.getVisCount(),
+                           child.puct.Q, child.PUCT(Np))
             )

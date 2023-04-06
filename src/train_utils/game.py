@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from agent.batch_inference import SharedData
 from agent.net_mcts import MCTSPlayer
-from env.simulator import Simulator
+from env.gobang_env import GobangEnv
 from utils import printInfo
 
 
@@ -23,8 +23,8 @@ def selfPlay(
     np.random.seed(seed)
     random.seed(seed)
 
-    env = Simulator()
-    done, winner = env.isEnd()
+    env = GobangEnv()
+    done, winner = env.isDone()
 
     episode_len, data_buffer = 0, []
     players = [
@@ -46,7 +46,7 @@ def selfPlay(
             players[i].step(action)
 
         # check game status
-        done, winner = env.isEnd()
+        done, winner = env.isDone()
 
     shared_data.finish()
     states, mcts_probs = zip(*data_buffer)
@@ -83,8 +83,8 @@ def contest(
     np.random.seed(seed)
     random.seed(seed)
 
-    env = Simulator()
-    done, winner = env.isEnd()
+    env = GobangEnv()
+    done, winner = env.isDone()
     for i in range(2):
         if players[i] is None:
             players[i] = MCTSPlayer(index, shared_data)
@@ -100,7 +100,7 @@ def contest(
             players[i].step(action)
 
         # check game status
-        done, winner = env.isEnd()
+        done, winner = env.isDone()
 
     shared_data.finish()
     # printInfo(f"Game Over. Winner: {winner}")

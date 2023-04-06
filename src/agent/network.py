@@ -5,11 +5,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from config import ENV_CONFIG, NETWORK_CONFIG
+from agent.network_utils import ResBlock, conv3x3
 from torch.cuda.amp import GradScaler, autocast
 from utils import printError, printInfo
 
-from .network_utils import ResBlock, conv3x3
+from config import ENV_CONFIG, NETWORK_CONFIG
 
 
 class Network(nn.Module):

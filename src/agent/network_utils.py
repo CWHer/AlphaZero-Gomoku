@@ -3,13 +3,14 @@ import copy
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+from env.gobang_env import GobangEnv
+
 from config import ENV_CONFIG, NETWORK_CONFIG
-from env.simulator import Simulator
 
 
 class ObsEncoder():
     @staticmethod
-    def encode(env: Simulator) -> np.ndarray:
+    def encode(env: GobangEnv) -> np.ndarray:
         """[summary]
         feature selection
 

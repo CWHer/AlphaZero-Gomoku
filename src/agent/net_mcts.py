@@ -2,14 +2,14 @@ import copy
 from typing import List, Tuple
 
 import numpy as np
-from config import ENV_CONFIG, MCTS_CONFIG
-from env.simulator import Simulator
-from tqdm import tqdm
+import tqdm
+from agent.batch_inference import SharedData
+from agent.net_mcts_utils import TreeNode
+from agent.network_utils import ObsEncoder
+from env.gobang_env import GobangEnv
 from utils import plotLine, timeLog
 
-from .batch_inference import SharedData
-from .net_mcts_utils import TreeNode
-from .network_utils import ObsEncoder
+from config import ENV_CONFIG, MCTS_CONFIG
 
 
 class MCTS():
@@ -27,7 +27,7 @@ class MCTS():
     def step(self, action: int) -> None:
         self.root = self.root.step(action)
 
-    def __search(self, env: Simulator) -> None:
+    def _search(self, env: GobangEnv) -> None:
         """[summary]
         NOTE: __search() contains:
             1. selection     2. expansion
@@ -43,7 +43,7 @@ class MCTS():
         # NOTE: replace simulation with network prediction, which yields
         #    1. prior_prob for each leaf node
         #    2. v in [-1, 1] for current node (from current player's perspective)
-        done, winner = env.isEnd()
+        done, winner = env.isDone()
         # terminal
         # NOTE: last action is made by opponent
         value = 0 if winner == -1 else -1
@@ -54,7 +54,7 @@ class MCTS():
             # NOTE: batch inference (on another process)
             policy, value = self.shared_data.get(self.index)
 
-            valid_actions = env.getEmptyIndices()
+            valid_actions = env.getAllActions()
             actions_probs = [
                 (action, policy[action])
                 for action in valid_actions
@@ -76,12 +76,9 @@ class MCTS():
             value = -value
             node = node.parent
 
-    def search(self, env: Simulator) -> Tuple[List, np.ndarray]:
-        # NOTE: ensure that root is correct
-
-        # for _ in tqdm(range(MCTS_CONFIG.n_search)):
-        for _ in range(MCTS_CONFIG.n_search):
-            self.__search(copy.deepcopy(env))
+    def search(self, env: GobangEnv) -> Tuple[List, np.ndarray]:
+        for _ in tqdm.trange(MCTS_CONFIG.n_search, disable=True):
+            self._search(copy.deepcopy(env))
         # self.root.display(env)
 
         actions, vis_cnt = list(
@@ -111,7 +108,7 @@ class MCTSPlayer():
 
     # @timeLog
     def getAction(
-        self, env: Simulator, is_train=False) -> \
+        self, env: GobangEnv, is_train=False) -> \
             Tuple[int, Tuple[np.ndarray, np.ndarray]]:
         """[summary]
         Returns:

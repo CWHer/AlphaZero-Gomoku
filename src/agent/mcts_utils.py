@@ -4,10 +4,10 @@ import math
 import random
 from typing import List, Optional
 
-from config import MCTS_CONFIG
-from env.simulator import Simulator
 from icecream import ic
 from utils import printError, printInfo
+
+from config import MCTS_CONFIG
 
 
 class UCT():
@@ -111,13 +111,14 @@ class TreeNode():
 
         return TreeNode(None, None)
 
-    def display(self, env: Simulator):
+    def display(self):
         """[summary]
         DEBUG function
         """
         Np = self.getVisCount()
         msg = "Action: {} with N: {:>4}, Q: {:>+.4f}, UCT: {:>+.4f}"
         for child in self.children:
-            printInfo(msg.format(
-                str(env.Idx2Coord(child.action)).rjust(6),
-                child.getVisCount(), child.uct.Q, child.UCT(Np)))
+            printInfo(
+                msg.format(child.action, child.getVisCount(),
+                           child.uct.Q, child.UCT(Np))
+            )

@@ -3,12 +3,12 @@ import random
 from typing import List, Tuple
 
 import numpy as np
-from config import MCTS_CONFIG
-from env.simulator import Simulator
-from tqdm import tqdm
+import tqdm
+from agent.mcts_utils import TreeNode
+from env.gobang_env import GobangEnv
 from utils import timeLog
 
-from .mcts_utils import TreeNode
+from config import MCTS_CONFIG
 
 
 class MCTS():
@@ -23,7 +23,7 @@ class MCTS():
     def step(self, action: int) -> None:
         self.root = self.root.step(action)
 
-    def __search(self, env: Simulator) -> None:
+    def _search(self, env: GobangEnv) -> None:
         """[summary]
         NOTE: __search() contains:
             1. selection     2. expansion
@@ -36,25 +36,25 @@ class MCTS():
             env.step(node.action)
 
         # >>>>> expansion
-        done, _ = env.isEnd()
+        done, _ = env.isDone()
         if not done:
             # update valid actions
             if node.valid_actions is None:
-                node.updUnvisited(env.getEmptyIndices())
+                node.updUnvisited(env.getAllActions())
             node = node.expand()
             env.step(node.action)
 
         # >>>>> simulation
-        def runRollout(env: Simulator) -> int:
+        def runRollout(env: GobangEnv) -> int:
             """[summary]    
             NOTE: this would change env
             """
-            done, winner = env.isEnd()
-            valid_actions = env.getEmptyIndices()
+            done, winner = env.isDone()
+            valid_actions = env.getAllActions()
             random.shuffle(valid_actions)
             while not done:
                 env.step(valid_actions.pop())
-                done, winner = env.isEnd()
+                done, winner = env.isDone()
             return winner
 
         last_turn = env.turn ^ 1
@@ -68,12 +68,9 @@ class MCTS():
             value = -value
             node = node.parent
 
-    def search(self, env: Simulator) -> Tuple[List, np.ndarray]:
-        # NOTE: ensure that root is correct
-
-        # for _ in tqdm(range(self.n_search)):
-        for _ in range(self.n_search):
-            self.__search(copy.deepcopy(env))
+    def search(self, env: GobangEnv) -> Tuple[List, np.ndarray]:
+        for _ in tqdm.trange(self.n_search, disable=True):
+            self._search(copy.deepcopy(env))
         # self.root.display(env)
 
         actions, vis_cnt = list(
@@ -101,7 +98,7 @@ class MCTSPlayer():
         self.mcts.step(action)
 
     # @timeLog
-    def getAction(self, env: Simulator) -> Tuple[int, None]:
+    def getAction(self, env: GobangEnv) -> Tuple[int, None]:
         """[summary]
         Returns: action
         """

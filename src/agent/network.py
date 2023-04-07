@@ -13,10 +13,6 @@ from config import ENV_CONFIG, NETWORK_CONFIG
 
 
 class AZNetwork(nn.Module):
-    """[summary]
-    toy AlphaZero network
-    """
-
     def __init__(self):
         super().__init__()
 
@@ -32,15 +28,19 @@ class AZNetwork(nn.Module):
 
         # policy head
         self.policy_head = nn.Sequential(
-            nn.Conv2d(n_channels, 4, kernel_size=1),
-            nn.Flatten(), nn.ReLU(),
+            nn.Conv2d(n_channels, 4, kernel_size=1, bias=False),
+            nn.BatchNorm2d(4),
+            nn.Flatten(),
+            nn.ReLU(),
             nn.Linear(4 * n_actions, n_actions)
         )
 
         # value head
         self.value_head = nn.Sequential(
-            nn.Conv2d(n_channels, 2, kernel_size=1),
-            nn.Flatten(), nn.ReLU(),
+            nn.Conv2d(n_channels, 2, kernel_size=1, bias=False),
+            nn.BatchNorm2d(2),
+            nn.Flatten(),
+            nn.ReLU(),
             nn.Linear(2 * n_actions, 256),
             nn.ReLU(), nn.Linear(256, 1),
             nn.Tanh()
